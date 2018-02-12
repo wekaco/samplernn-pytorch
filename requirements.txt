@@ -2,6 +2,7 @@ librosa==0.5.1
 matplotlib==2.1.0
 natsort==5.1.0
 torch==0.4.1
+tqdm==4.19.5
 comet_ml
 google-cloud-storage
 pyyaml

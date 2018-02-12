@@ -1,5 +1,6 @@
 import nn
 import utils
+import tqdm
 
 import torch
 from torch.nn import functional as F
@@ -266,7 +267,9 @@ class Generator(Runner):
                          .fill_(utils.q_zero(self.model.q_levels))
         frame_level_outputs = [None for _ in self.model.frame_level_rnns]
 
-        for i in range(self.model.lookback, self.model.lookback + seq_len):
+        print('Generating sample...')
+
+        for i in tqdm.tqdm(range(self.model.lookback, self.model.lookback + seq_len), mininterval=1, ascii=True):
             for (tier_index, rnn) in \
                     reversed(list(enumerate(self.model.frame_level_rnns))):
                 if i % rnn.n_frame_samples != 0:
