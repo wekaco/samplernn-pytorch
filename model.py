@@ -244,7 +244,7 @@ class Generator(Runner):
 
     def __call__(self, n_seqs, seq_len):
         # generation doesn't work with CUDNN for some reason
-        torch.backends.cudnn.enabled = False
+        #torch.backends.cudnn.enabled = False
 
         self.reset_hidden_states()
 
@@ -296,6 +296,6 @@ class Generator(Runner):
             ).squeeze(1).exp_().data
             sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
 
-        torch.backends.cudnn.enabled = True
+        #torch.backends.cudnn.enabled = True
 
         return sequences[:, self.model.lookback :]
