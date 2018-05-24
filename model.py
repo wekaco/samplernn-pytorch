@@ -62,7 +62,7 @@ class FrameLevelRNN(torch.nn.Module):
         if weight_norm:
             self.input_expand = torch.nn.utils.weight_norm(self.input_expand)
 
-        self.rnn = torch.nn.GRU(
+        self.rnn = torch.nn.LSTM(
             input_size=dim,
             hidden_size=dim,
             num_layers=n_rnn,
