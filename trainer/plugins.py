@@ -163,7 +163,7 @@ class GeneratorPlugin(Plugin):
         for i in range(self.n_samples):
             write_wav(
                 os.path.join(
-                     self.samples_path, self.pattern.format(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"], i + 1)
+                     self.samples_path, self.pattern.format(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"]["last"].tolist(), i + 1)
                 ),
                 samples[i, :], sr=self.sample_rate, norm=True
             )

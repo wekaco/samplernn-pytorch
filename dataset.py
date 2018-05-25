@@ -30,7 +30,7 @@ class FolderDataset(Dataset):
         return torch.cat([
             torch.LongTensor(self.overlap_len) \
                  .fill_(utils.q_zero(self.q_levels)),
-            utils.linear_quantize(
+            utils.mu_quantize(
                 torch.from_numpy(seq), self.q_levels
             )
         ])
