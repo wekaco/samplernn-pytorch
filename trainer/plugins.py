@@ -141,7 +141,7 @@ class SaverPlugin(Plugin):
 
 class GeneratorPlugin(Plugin):
 
-    pattern = 'ep{}-s{}.wav'
+    pattern = 'e{}-i{}-t{}_{}.wav'
 
     def __init__(self, samples_path, n_samples, sample_length, sample_rate):
         super().__init__([(1, 'epoch')])
@@ -152,14 +152,18 @@ class GeneratorPlugin(Plugin):
 
     def register(self, trainer):
         self.generate = Generator(trainer.model.model, trainer.cuda)
+        self.trainer = trainer
+        print(self.trainer.stats)
 
     def epoch(self, epoch_index):
         samples = self.generate(self.n_samples, self.sample_length) \
                       .cpu().float().numpy()
+        print("__epoch__");
+        print(self.trainer.stats)
         for i in range(self.n_samples):
             write_wav(
                 os.path.join(
-                    self.samples_path, self.pattern.format(epoch_index, i + 1)
+                     self.samples_path, self.pattern.format(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"], i + 1)
                 ),
                 samples[i, :], sr=self.sample_rate, norm=True
             )

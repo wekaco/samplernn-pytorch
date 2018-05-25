@@ -184,7 +184,7 @@ def main(exp, frame_sizes, dataset, **params):
         model = model.cuda()
         predictor = predictor.cuda()
 
-    optimizer = gradient_clipping(torch.optim.Adam(predictor.parameters()))
+    optimizer = gradient_clipping(torch.optim.Adam(predictor.parameters(), lr=0.001))
 
     data_loader = make_data_loader(model.lookback, params)
     test_split = 1 - params['test_frac']
@@ -231,10 +231,12 @@ def main(exp, frame_sizes, dataset, **params):
         results_path,
         iteration_fields=[
             'training_loss',
-            ('training_loss', 'running_avg'),
+            #('training_loss', 'running_avg'),
             'time'
         ],
         epoch_fields=[
+            'training_loss',
+            ('training_loss', 'running_avg')
             'validation_loss',
             'test_loss',
             'time'
@@ -244,7 +246,7 @@ def main(exp, frame_sizes, dataset, **params):
                 'x': 'iteration',
                 'ys': [
                     'training_loss',
-                    ('training_loss', 'running_avg'),
+                   # ('training_loss', 'running_avg'),
                     'validation_loss',
                     'test_loss',
                 ],
