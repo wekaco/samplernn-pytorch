@@ -7,8 +7,12 @@ EPSILON = 1e-2
 
 def linear_quantize(samples, q_levels):
     samples = samples.clone()
-    samples -= samples.min(dim=-1)[0].expand_as(samples)
-    samples /= samples.max(dim=-1)[0].expand_as(samples)
+    # these two lines will normalize the audio (bad)
+    #samples -= samples.min(dim=-1)[0].expand_as(samples)
+    #samples /= samples.max(dim=-1)[0].expand_as(samples)
+    # instead, don't normalize (good) --cj
+    samples += 1
+    samples /= 2.0
     samples *= q_levels - EPSILON
     samples += EPSILON / 2
     return samples.long()

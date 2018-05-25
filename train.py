@@ -236,7 +236,7 @@ def main(exp, frame_sizes, dataset, **params):
         ],
         epoch_fields=[
             'training_loss',
-            ('training_loss', 'running_avg')
+            ('training_loss', 'running_avg'),
             'validation_loss',
             'test_loss',
             'time'
@@ -248,7 +248,7 @@ def main(exp, frame_sizes, dataset, **params):
                     'training_loss',
                    # ('training_loss', 'running_avg'),
                     'validation_loss',
-                    'test_loss',
+                    'test_loss'
                 ],
                 'log_y': True
             }
