@@ -57,8 +57,8 @@ class FrameLevelRNN(torch.nn.Module):
             out_channels=dim,
             kernel_size=1
         )
-        init.kaiming_uniform(self.input_expand.weight)
-        init.constant(self.input_expand.bias, 0)
+        init.kaiming_uniform_(self.input_expand.weight)
+        init.constant_(self.input_expand.bias, 0)
         if weight_norm:
             self.input_expand = torch.nn.utils.weight_norm(self.input_expand)
 
@@ -73,23 +73,23 @@ class FrameLevelRNN(torch.nn.Module):
                 getattr(self.rnn, 'weight_ih_l{}'.format(i)),
                 [nn.lecun_uniform, nn.lecun_uniform, nn.lecun_uniform]
             )
-            init.constant(getattr(self.rnn, 'bias_ih_l{}'.format(i)), 0)
+            init.constant_(getattr(self.rnn, 'bias_ih_l{}'.format(i)), 0)
 
             nn.concat_init(
                 getattr(self.rnn, 'weight_hh_l{}'.format(i)),
                 [nn.lecun_uniform, nn.lecun_uniform, init.orthogonal]
             )
-            init.constant(getattr(self.rnn, 'bias_hh_l{}'.format(i)), 0)
+            init.constant_(getattr(self.rnn, 'bias_hh_l{}'.format(i)), 0)
 
         self.upsampling = nn.LearnedUpsampling1d(
             in_channels=dim,
             out_channels=dim,
             kernel_size=frame_size
         )
-        init.uniform(
+        init.uniform_(
             self.upsampling.conv_t.weight, -np.sqrt(6 / dim), np.sqrt(6 / dim)
         )
-        init.constant(self.upsampling.bias, 0)
+        init.constant_(self.upsampling.bias, 0)
         if weight_norm:
             self.upsampling.conv_t = torch.nn.utils.weight_norm(
                 self.upsampling.conv_t
@@ -138,7 +138,7 @@ class SampleLevelMLP(torch.nn.Module):
             kernel_size=frame_size,
             bias=False
         )
-        init.kaiming_uniform(self.input.weight)
+        init.kaiming_uniform_(self.input.weight)
         if weight_norm:
             self.input = torch.nn.utils.weight_norm(self.input)
 
@@ -147,8 +147,8 @@ class SampleLevelMLP(torch.nn.Module):
             out_channels=dim,
             kernel_size=1
         )
-        init.kaiming_uniform(self.hidden.weight)
-        init.constant(self.hidden.bias, 0)
+        init.kaiming_uniform_(self.hidden.weight)
+        init.constant_(self.hidden.bias, 0)
         if weight_norm:
             self.hidden = torch.nn.utils.weight_norm(self.hidden)
 
@@ -158,7 +158,7 @@ class SampleLevelMLP(torch.nn.Module):
             kernel_size=1
         )
         nn.lecun_uniform(self.output.weight)
-        init.constant(self.output.bias, 0)
+        init.constant_(self.output.bias, 0)
         if weight_norm:
             self.output = torch.nn.utils.weight_norm(self.output)
 

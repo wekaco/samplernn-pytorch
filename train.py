@@ -44,11 +44,11 @@ default_params = {
     'keep_old_checkpoints': False,
     'datasets_path': 'datasets',
     'results_path': 'results',
-    'epoch_limit': 1000,
+    'epoch_limit': 100,  # default: 1000
     'resume': True,
     'sample_rate': 16000,
     'n_samples': 1,
-    'sample_length': 80000,
+    'sample_length': 30000,  # 8s -> 80000
     'loss_smoothing': 0.99,
     'cuda': True,
     'comet_key': None

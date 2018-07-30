@@ -9,7 +9,13 @@ It's based on the reference implementation in Theano: https://github.com/soroush
 ## Dependencies
 
 This code requires Python 3.5+ and PyTorch 0.1.12+. Installation instructions for PyTorch are available on their website: http://pytorch.org/. You can install the rest of the dependencies by running `pip install -r requirements.txt`.
-
+```bash
+pip install -U numpy scipy
+pip install matplotlib
+git clone https://github.com/librosa/librosa
+python setup.py build
+python setup.py install
+```
 ## Datasets
 
 We provide a script for creating datasets from YouTube single-video mixes. It downloads a mix, converts it to wav and splits it into equal-length chunks. To run it you need youtube-dl (a recent version; the latest version from pip should be okay) and ffmpeg. To create an example dataset - 4 hours of piano music split into 8 second chunks, run:
@@ -20,6 +26,11 @@ cd datasets
 ```
 
 You can also prepare a dataset yourself. It should be a directory in `datasets/` filled with equal-length wav files. Or you can create your own dataset format by subclassing `torch.utils.data.Dataset`. It's easy, take a look at `dataset.FolderDataset` in this repo for an example.
+
+## Pre-processing
+```
+python audio_preprocessing.py --folder FOLDER_NAME
+```
 
 ## Training
 

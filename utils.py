@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
-
+import os
 
 EPSILON = 1e-2
 
@@ -18,3 +18,8 @@ def linear_dequantize(samples, q_levels):
 
 def q_zero(q_levels):
     return q_levels // 2
+
+def ensure_dir(file_path):
+    # directory = os.path.dirname(file_path)
+    if not os.path.exists(file_path):
+        os.mkdir(file_path)
