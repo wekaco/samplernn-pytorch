@@ -6,14 +6,30 @@ from timeit import default_timer as timer
 from scipy.io import wavfile
 import numpy as np
 import utils
+from collections import defaultdict
 
 """
 Transform wav files in folder to 16kHz, 8 bits, 1 channel audio files
 """
 
 
-def check_audio_files_size():
-    print("Check")
+def check_audio_files_size(files):
+    print("Check audio files size")
+    files_size_dict = defaultdict(lambda: 0)
+    for f in files:
+        fs, data = wavfile.read(f)
+        f_length = np.shape(data)[0]
+        files_size_dict[f_length] += 1
+
+    print(files_size_dict.items())
+    str = 'All sizes are the same'
+    same_size = True
+    if len(files_size_dict.keys()) >= 2:
+        str = ''
+        for k, v in files_size_dict.items():
+            str += '{} files of size {} found.\n'.format(v, k)
+    print(str)
+    return same_size
 
 
 if __name__ == '__main__':
@@ -30,52 +46,9 @@ if __name__ == '__main__':
     print(IFS)
     print(args.folder)
 
-    # TODO: Calculate max samples, delete others? Check audio segmentation to see why audio is non existent
+    # Calculate max samples, gives notice! Check audio segmentation to see why audio is non existent
     files = glob.glob("{}/*{}".format(args.folder, IFS))
-    all_same = check_audio_files_size()
-    '''
-    audio_length = 132301
-    files = glob.glob("{}/*{}".format(args.folder, IFS))
-    for f in files:
-        print(f)
-        fs, data = wavfile.read(f)
-        f_length = np.shape(data)
-        if 132301 != f_length[0]:
-            print("File: {}, length: {}".format(f, f_length))
-    '''
-
-    '''
-    # Make sure samples are the same size
-    from pydub import AudioSegment
-    num_chunks = float("inf")
-    files = glob.glob("{}/*{}".format(args.folder, IFS))
-    for f in files:
-        sound = AudioSegment.from_file(f, 'wav')
-        fs = sound.frame_rate
-        sound_chunks = len(sound)
-        if num_chunks > sound_chunks:
-            num_chunks = sound_chunks
-            print("File: {}, length: {}, {}".format(f, sound_chunks, sound.frame_count()))
-
-    folder = args.folder + '_eq_segs'
-    utils.ensure_dir(folder)
-    for f in files:
-        sound = AudioSegment.from_file(f)
-        sound.frame_rate
-        new_sound = sound[1:num_chunks]
-        f_base = f.split(IFS)[0]
-        filename = '{folder}/{filename}{IFS}'.format(folder=folder, filename=f_base.split('/')[-1], IFS=IFS)
-        new_sound.export(filename, format="wav")
-
-    '''
-    # Make sure all samples have the same size
-    #folder = args.folder + '_eq_segs'
-    #files = glob.glob(args.folder + "/*{}".format(IFS))
-    #for f in files:
-    #    fs, data = wavfile.read(f)
-    #    f_base = f.split(IFS)[0]
-    #    filename = '{folder}/{filename}{IFS}'.format(folder=folder, filename=f_base.split('/')[-1], IFS=IFS)
-    #    wavfile.write(filename, fs, data[1:audio_length])
+    all_same = check_audio_files_size(files)
 
     # Change sample rate to 16000, 1 channel, 8 bits
     files = glob.glob(args.folder+"/*{}".format(IFS))
