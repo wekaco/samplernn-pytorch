@@ -32,7 +32,7 @@ default_params = {
     # model parameters
     'n_rnn': 1,
     'dim': 1024,
-    'learn_h0': True,
+    'learn_h0': False,
     'q_levels': 256,
     'seq_len': 1024,
     'weight_norm': True,
