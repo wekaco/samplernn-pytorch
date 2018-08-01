@@ -62,7 +62,7 @@ class FrameLevelRNN(torch.nn.Module):
         if weight_norm:
             self.input_expand = torch.nn.utils.weight_norm(self.input_expand)
 
-        self.rnn = torch.nn.GRU(
+        self.rnn = torch.nn.LSTM(
             input_size=dim,
             hidden_size=dim,
             num_layers=n_rnn,
@@ -71,13 +71,13 @@ class FrameLevelRNN(torch.nn.Module):
         for i in range(n_rnn):
             nn.concat_init(
                 getattr(self.rnn, 'weight_ih_l{}'.format(i)),
-                [nn.lecun_uniform, nn.lecun_uniform, nn.lecun_uniform]
+                [nn.lecun_uniform, nn.lecun_uniform, nn.lecun_uniform, nn.lecun_uniform]
             )
             init.constant(getattr(self.rnn, 'bias_ih_l{}'.format(i)), 0)
 
             nn.concat_init(
                 getattr(self.rnn, 'weight_hh_l{}'.format(i)),
-                [nn.lecun_uniform, nn.lecun_uniform, init.orthogonal]
+                [nn.lecun_uniform, nn.lecun_uniform, init.orthogonal, nn.lecun_uniform]
             )
             init.constant(getattr(self.rnn, 'bias_hh_l{}'.format(i)), 0)
 
@@ -111,13 +111,18 @@ class FrameLevelRNN(torch.nn.Module):
             hidden = self.h0.unsqueeze(1) \
                             .expand(n_rnn, batch_size, self.dim) \
                             .contiguous()
+            cell = self.h0.unsqueeze(1) \
+                            .expand(n_rnn, batch_size, self.dim) \
+                            .contiguous()
+        else:
+            (hidden, cell) = hidden
 
-        (output, hidden) = self.rnn(input, hidden)
+        (output, (hidden, cell)) = self.rnn(input, (hidden, cell))
 
         output = self.upsampling(
             output.permute(0, 2, 1)
         ).permute(0, 2, 1)
-        return (output, hidden)
+        return (output, (hidden, cell))
 
 
 class SampleLevelMLP(torch.nn.Module):
@@ -196,7 +201,15 @@ class Runner:
         (output, new_hidden) = rnn(
             prev_samples, upper_tier_conditioning, self.hidden_states[rnn]
         )
-        self.hidden_states[rnn] = new_hidden.detach()
+
+        if(isinstance(new_hidden, tuple)):
+            # LSTM, hidden is a tuple containing (hidden, cell)
+            new_hidden = [nh.detach() for nh in new_hidden]
+            self.hidden_states[rnn] = new_hidden
+        else:
+            # GRU
+            self.hidden_states[rnn] = new_hidden.detach()
+
         return output
 
 
