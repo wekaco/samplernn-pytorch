@@ -15,6 +15,7 @@ pip install matplotlib
 git clone https://github.com/librosa/librosa
 python setup.py build
 python setup.py install
+pip install http://download.pytorch.org/whl/cu80/torch-0.4.0-cp35-cp35m-linux_x86_64.whl
 ```
 ## Datasets
 
@@ -37,7 +38,8 @@ python audio_preprocessing.py --folder FOLDER_NAME
 To train the model you need to run `train.py`. All model hyperparameters are settable in the command line. Most hyperparameters have sensible default values, so you don't need to provide all of them. Run `python train.py -h` for details. To train on the `piano` dataset using the best hyperparameters we've found, run:
 
 ```
-python train.py --exp TEST --frame_sizes 16 4 --n_rnn 2 --dataset piano
+CUDA_VISIBLE_DEVICES=0,1 python train.py --exp TEST --frame_sizes 16 4 --n_rnn 2 --dataset piano
+CUDA_VISIBLE_DEVICES=0,1 python train.py --exp TEST --frame_sizes 16 4 --n_rnn 2 --dataset splices_audio_BMI_16000_c1_16bits_music_eq
 ```
 
 The results - training log, loss plots, model checkpoints and generated samples will be saved in `results/`.
