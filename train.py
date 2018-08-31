@@ -171,6 +171,11 @@ def main(exp, frame_sizes, dataset, **params):
     results_path = setup_results_dir(params)
     tee_stdout(os.path.join(results_path, 'log'))
 
+    # Save samplernn parameters in .json for future audio generation
+    import json
+    with open(os.path.join(results_path, 'sample_rnn_params.json'), 'w') as fp:
+        json.dump(params, fp)
+
     model = SampleRNN(
         frame_sizes=params['frame_sizes'],
         n_rnn=params['n_rnn'],
