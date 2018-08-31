@@ -153,7 +153,7 @@ class GeneratorPlugin(Plugin):
     def register(self, trainer):
         self.generate = Generator(trainer.model.model, trainer.cuda)
 
-    # Overload register to accept model and cuda (which tells whether we should use GPU or not) -> audio generation after training
+    # Overload register to accept model and cuda setting (which tells whether we should use GPU or not) -> audio generation after training
     def register(self, model, cuda):
         self.generate = Generator(model, cuda)
 
