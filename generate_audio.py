@@ -10,8 +10,10 @@ from trainer.plugins import GeneratorPlugin
 
 
 # Paths
-RESULTS_PATH = 'results/exp:TEST-frame_sizes:16,4-n_rnn:2-dataset:COGNIMUSE_eq_eq_pad/'
-PRETRAINED_PATH = RESULTS_PATH + 'checkpoints/best-ep65-it79430'
+# RESULTS_PATH = 'results/exp:TEST-frame_sizes:16,4-n_rnn:2-dataset:COGNIMUSE_eq_eq_pad/'
+# PRETRAINED_PATH = RESULTS_PATH + 'checkpoints/best-ep65-it79430'
+RESULTS_PATH = 'results/exp:TEST-frame_sizes:16,4-n_rnn:2-dataset:piano3/'
+PRETRAINED_PATH = RESULTS_PATH + 'checkpoints/best-ep21-it29610'
 GENERATED_PATH = RESULTS_PATH + 'generated/'
 if not os.path.exists(GENERATED_PATH):
     os.mkdir(GENERATED_PATH)
@@ -44,11 +46,14 @@ for k, v in pretrained_state.items():
 model.load_state_dict(new_pretrained_state)
 
 # Generate Plugin
-generator = GeneratorPlugin(GENERATED_PATH, 2, params['sample_length'], params['sample_rate'])
-# generator = GeneratorPlugin(generated_path, params['n_samples'], params['sample_length'], params['sample_rate'])
+num_samples = 2  # params['n_samples']
+sample_length = params['sample_length']
+sample_rate = params['sample_rate']
+print("Number samples: {}, sample_length: {}, sample_rate: {}".format(num_samples, sample_length, sample_rate))
+generator = GeneratorPlugin(GENERATED_PATH, num_samples, sample_length, sample_rate)
 
-# Overloads register function to accept the trained model and the cuda setting
-generator.register(model.cuda(), params['cuda'])
+# Call new register function to accept the trained model and the cuda setting
+generator.register_generate(model.cuda(), params['cuda'])
 
 # Generate new audio
-generator.epoch(1)
+generator.epoch('Test2')
