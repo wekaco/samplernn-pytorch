@@ -242,18 +242,25 @@ class Generator(Runner):
         super().__init__(model)
         self.cuda = cuda
 
-    def __call__(self, n_seqs, seq_len):
+    def __call__(self, n_seqs, seq_len, initial_seed=None):
         # generation doesn't work with CUDNN for some reason
-        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.enabled = False
 
         self.reset_hidden_states()
 
         bottom_frame_size = self.model.frame_level_rnns[0].n_frame_samples
         sequences = torch.LongTensor(n_seqs, self.model.lookback + seq_len) \
-                         .fill_(utils.q_zero(self.model.q_levels))
+            .fill_(utils.q_zero(self.model.q_levels))
+        if initial_seed is None:
+            initial_i = self.model.lookback
+            final_i = initial_i + seq_len
+        else:  # CONDITIONAL
+            sequences[:, 0:np.shape(initial_seed)[1]] = initial_seed
+            initial_i = np.shape(initial_seed)[1]   # + self.model.lookback
+            final_i = self.model.lookback + seq_len
         frame_level_outputs = [None for _ in self.model.frame_level_rnns]
 
-        for i in range(self.model.lookback, self.model.lookback + seq_len):
+        for i in range(initial_i, final_i):
             for (tier_index, rnn) in \
                     reversed(list(enumerate(self.model.frame_level_rnns))):
                 if i % rnn.n_frame_samples != 0:
@@ -269,7 +276,8 @@ class Generator(Runner):
                 if self.cuda:
                     prev_samples = prev_samples.cuda()
 
-                if tier_index == len(self.model.frame_level_rnns) - 1:
+                l = len(self.model.frame_level_rnns) - 1
+                if tier_index == l:
                     upper_tier_conditioning = None
                 else:
                     frame_index = (i // rnn.n_frame_samples) % \

@@ -10,10 +10,10 @@ from trainer.plugins import GeneratorPlugin
 
 
 # Paths
-# RESULTS_PATH = 'results/exp:TEST-frame_sizes:16,4-n_rnn:2-dataset:COGNIMUSE_eq_eq_pad/'
-# PRETRAINED_PATH = RESULTS_PATH + 'checkpoints/best-ep65-it79430'
-RESULTS_PATH = 'results/exp:TEST-frame_sizes:16,4-n_rnn:2-dataset:piano3/'
-PRETRAINED_PATH = RESULTS_PATH + 'checkpoints/best-ep21-it29610'
+RESULTS_PATH = 'results/exp:TEST-frame_sizes:16,4-n_rnn:2-dataset:COGNIMUSE_eq_eq_pad/'
+PRETRAINED_PATH = RESULTS_PATH + 'checkpoints/best-ep65-it79430'
+# RESULTS_PATH = 'results/exp:TEST-frame_sizes:16,4-n_rnn:2-dataset:piano3/'
+# PRETRAINED_PATH = RESULTS_PATH + 'checkpoints/best-ep21-it29610'
 GENERATED_PATH = RESULTS_PATH + 'generated/'
 if not os.path.exists(GENERATED_PATH):
     os.mkdir(GENERATED_PATH)

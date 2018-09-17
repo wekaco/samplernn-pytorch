@@ -157,8 +157,8 @@ class GeneratorPlugin(Plugin):
     def register_generate(self, model, cuda):
         self.generate = Generator(model, cuda)
 
-    def epoch(self, epoch_index):
-        samples = self.generate(self.n_samples, self.sample_length) \
+    def epoch(self, epoch_index, initial_seed=None):
+        samples = self.generate(self.n_samples, self.sample_length, initial_seed=initial_seed) \
                       .cpu().float().numpy()
         for i in range(self.n_samples):
             write_wav(

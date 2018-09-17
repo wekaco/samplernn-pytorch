@@ -13,6 +13,7 @@ from os.path import join
 
 
 class FolderDataset(Dataset):
+    """An abstract class representing a Dataset."""
 
     def __init__(self, path, overlap_len, q_levels, ratio_min=0, ratio_max=1):
         super().__init__()
@@ -38,8 +39,14 @@ class FolderDataset(Dataset):
     def __len__(self):
         return len(self.file_names)
 
+    def get_filename(self, index):
+        return self.file_names[index]
+
 
 class DataLoader(DataLoaderBase):
+    """
+    Data loader. Combines a dataset and a sampler, and provides single- or multi-process iterators over the dataset.
+    """
 
     def __init__(self, dataset, batch_size, seq_len, overlap_len,
                  *args, **kwargs):
@@ -48,8 +55,14 @@ class DataLoader(DataLoaderBase):
         self.overlap_len = overlap_len
 
     def __iter__(self):
-        for batch in super().__iter__():
+        ls = super().__len__()
+        for i, batch in enumerate(super().__iter__()):
             (batch_size, n_samples) = batch.size()
+
+            #l = batch.__len__()
+            #for b in range(0, batch.__len__()):
+            #    print(batch[b].data)
+            #    print(batch[b].data.get_filename(b))
 
             reset = True
 
@@ -65,4 +78,5 @@ class DataLoader(DataLoaderBase):
                 reset = False
 
     def __len__(self):
-        raise NotImplementedError()
+        # raise NotImplementedError()
+        return super().__len__()
