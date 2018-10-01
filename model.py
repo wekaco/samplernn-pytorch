@@ -242,7 +242,7 @@ class Generator(Runner):
         super().__init__(model)
         self.cuda = cuda
 
-    def __call__(self, n_seqs, seq_len, initial_seed=None):
+    def __call__(self, n_seqs, seq_len, initial_seq=None):
         # generation doesn't work with CUDNN for some reason
         torch.backends.cudnn.enabled = False
 
@@ -251,12 +251,13 @@ class Generator(Runner):
         bottom_frame_size = self.model.frame_level_rnns[0].n_frame_samples
         sequences = torch.LongTensor(n_seqs, self.model.lookback + seq_len) \
             .fill_(utils.q_zero(self.model.q_levels))
-        if initial_seed is None:
+        if initial_seq is None:
             initial_i = self.model.lookback
             final_i = initial_i + seq_len
         else:  # CONDITIONAL
-            sequences[:, 0:np.shape(initial_seed)[1]] = initial_seed
-            initial_i = np.shape(initial_seed)[1]   # + self.model.lookback
+            sequences[:, 0:np.shape(initial_seq)[1]] = initial_seq
+            initial_i = np.shape(initial_seq)[1] - self.model.lookback
+            # initial_i = np.shape(initial_seq)[1] + self.model.lookback
             final_i = self.model.lookback + seq_len
         frame_level_outputs = [None for _ in self.model.frame_level_rnns]
 
@@ -273,11 +274,13 @@ class Generator(Runner):
                     ).unsqueeze(1),
                     volatile=True
                 )
+                # print("Tier {}: prev_samples from {} to {}, shape {}: {}".format(tier_index, i - rnn.n_frame_samples, i, np.shape(prev_samples), prev_samples))
                 if self.cuda:
                     prev_samples = prev_samples.cuda()
 
                 l = len(self.model.frame_level_rnns) - 1
                 if tier_index == l:
+                    print("No upper tier conditioning")
                     upper_tier_conditioning = None
                 else:
                     frame_index = (i // rnn.n_frame_samples) % \
@@ -285,24 +288,30 @@ class Generator(Runner):
                     upper_tier_conditioning = \
                         frame_level_outputs[tier_index + 1][:, frame_index, :] \
                                            .unsqueeze(1)
+                    print("Frame index {}, upper_tier_conditioning shape {}".format(frame_index, np.shape(upper_tier_conditioning)))
 
                 frame_level_outputs[tier_index] = self.run_rnn(
                     rnn, prev_samples, upper_tier_conditioning
                 )
+                print("Tier {} frame level outputs shape {}".format(tier_index, np.shape(frame_level_outputs[tier_index])))
 
+            # print(sequences[:, i - bottom_frame_size : i])
             prev_samples = torch.autograd.Variable(
                 sequences[:, i - bottom_frame_size : i],
                 volatile=True
             )
+            # print("Tier {}: prev_samples from {} to {}, shape {}: {}".format(tier_index, i - bottom_frame_size, i, np.shape(prev_samples), prev_samples))
             if self.cuda:
                 prev_samples = prev_samples.cuda()
             upper_tier_conditioning = \
                 frame_level_outputs[0][:, i % bottom_frame_size, :] \
                                       .unsqueeze(1)
-            sample_dist = self.model.sample_level_mlp(
-                prev_samples, upper_tier_conditioning
-            ).squeeze(1).exp_().data
+            sample_dist = self.model.sample_level_mlp(prev_samples, upper_tier_conditioning)
+            sample_dist = sample_dist.squeeze(1).exp_().data
+            print("Sample dist {}".format(np.shape(sample_dist)))
+            print("Before: {}".format(sequences[:, i]))
             sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
+            print("After {}".format(sequences[:, i]))
 
         torch.backends.cudnn.enabled = True
 

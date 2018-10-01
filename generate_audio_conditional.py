@@ -63,7 +63,7 @@ def get_test_data(model, params):
 
     # Get test data (source: train.py)
     # data_loader = make_data_loader2(model.lookback, params, params['dataset'])
-    data_loader = make_data_loader2(model.lookback, params, 'COGNIMUSE_eq_eq_pad_test')
+    data_loader = make_data_loader2(model.lookback, params, 'Seminar_test')  # 'COGNIMUSE_eq_eq_pad_test')
     dataset, dataset_filenames = data_loader(0, 1, eval=False)
 
     print("single: {}".format(dataset_filenames))
@@ -108,15 +108,15 @@ if __name__ == '__main__':
     print("Sample rate: {}".format(sr))
 
     # Generate Plugin
-    num_samples = 3  # params['n_samples']
+    num_samples = 6  # params['n_samples']
 
-    initial_seed_size = 64*64  # has to be multiple of rnn.n_frame_samples ???
-    initial_seed = None
-    if initial_seed_size > 1:
-        init = utils.linear_quantize(torch.from_numpy(seq[0:initial_seed_size]), params['q_levels'])
+    initial_seq_size = 64 * 100  # has to be multiple of rnn.n_frame_samples ???
+    initial_seq = None
+    if initial_seq_size > 1:
+        init = utils.linear_quantize(torch.from_numpy(seq[0:initial_seq_size]), params['q_levels'])
         # init = seq[0:initial_seed_size]
         init = np.tile(init, (num_samples, 1))
-        initial_seed = torch.LongTensor(init)
+        initial_seq = torch.LongTensor(init)
         # initial_seed = utils.linear_quantize(initial_seed, params['q_levels'])
 
     sample_length = params['sample_length']
@@ -128,4 +128,4 @@ if __name__ == '__main__':
     generator.register_generate(model.cuda(), params['cuda'])
 
     # Generate new audio
-    generator.epoch('Test12_{}'.format(initial_seed_size), initial_seed=initial_seed)
+    generator.epoch('Test19_{}'.format(initial_seq_size), initial_seed=initial_seq)
