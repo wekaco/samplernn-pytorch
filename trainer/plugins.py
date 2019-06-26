@@ -143,12 +143,13 @@ class GeneratorPlugin(Plugin):
 
     pattern = 'ep{}-s{}.wav'
 
-    def __init__(self, samples_path, n_samples, sample_length, sample_rate):
+    def __init__(self, samples_path, n_samples, sample_length, sample_rate, sampling_temperature):
         super().__init__([(1, 'epoch')])
         self.samples_path = samples_path
         self.n_samples = n_samples
         self.sample_length = sample_length
         self.sample_rate = sample_rate
+        self.sampling_temperature = sampling_temperature
 
     def register(self, trainer):
         self.generate = Generator(trainer.model.model, trainer.cuda)
@@ -158,7 +159,7 @@ class GeneratorPlugin(Plugin):
         self.generate = Generator(model, cuda)
 
     def epoch(self, epoch_index, initial_seq=None):
-        samples = self.generate(self.n_samples, self.sample_length, initial_seq=initial_seq) \
+        samples = self.generate(self.n_samples, self.sample_length, self.sampling_temperature, initial_seq=initial_seq) \
                       .cpu().float().numpy()
         for i in range(self.n_samples):
             write_wav(

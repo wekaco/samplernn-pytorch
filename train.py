@@ -48,7 +48,8 @@ default_params = {
     'resume': True,
     'sample_rate': 16000,
     'n_samples': 1,
-    'sample_length': 30000,  # 8s -> 80000
+    'sample_length': 8 * 16000,
+    'sampling_temperature': 0.9,
     'loss_smoothing': 0.99,
     'cuda': True,
     'comet_key': None
@@ -222,7 +223,7 @@ def main(exp, frame_sizes, dataset, **params):
     ))
     trainer.register_plugin(GeneratorPlugin(
         os.path.join(results_path, 'samples'), params['n_samples'],
-        params['sample_length'], params['sample_rate']
+        params['sample_length'], params['sample_rate'], params['sampling_temperature']
     ))
     trainer.register_plugin(
         Logger([
@@ -346,6 +347,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--sample_length', type=int,
         help='length of each generated sample (in samples)'
+    )
+    parser.add_argument(
+        '--sampling_temperature', type=float,
+        help='"temperature" to control dynamics of sampling and prevent noise'
     )
     parser.add_argument(
         '--loss_smoothing', type=float,
