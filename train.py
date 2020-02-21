@@ -152,7 +152,7 @@ def init_comet(params, trainer):
         hyperparams = {
             name: param_to_string(params[name]) for name in tag_params
         }
-        experiment.log_multiple_params(hyperparams)
+        experiment.log_parameters(hyperparams)
         trainer.register_plugin(CometPlugin(
             experiment, [
                 ('training_loss', 'epoch_mean'),
