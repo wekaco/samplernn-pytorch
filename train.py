@@ -46,9 +46,9 @@ default_params = {
     'results_path': 'results',
     'epoch_limit': 1000,
     'resume': True,
-    'sample_rate': 16000,
+    'sample_rate': 8000, #16000,
     'n_samples': 1,
-    'sample_length': 80000,
+    'sample_length':  16000, #80000,
     'loss_smoothing': 0.99,
     'cuda': True,
     'comet_key': None
@@ -144,7 +144,7 @@ def make_data_loader(overlap_len, params):
         )
     return data_loader
 
-def init_comet(params, trainer):
+def init_comet(params, trainer, samples_path, n_samples, sample_rate):
     if params['comet_key'] is not None:
         from comet_ml import Experiment
         from trainer.plugins import CometPlugin
@@ -158,7 +158,10 @@ def init_comet(params, trainer):
                 ('training_loss', 'epoch_mean'),
                 'validation_loss',
                 'test_loss'
-            ]
+            ],
+            samples_path,
+            n_samples,
+            sample_rate
         ))
 
 def main(exp, frame_sizes, dataset, **params):
@@ -215,8 +218,9 @@ def main(exp, frame_sizes, dataset, **params):
     trainer.register_plugin(SaverPlugin(
         checkpoints_path, params['keep_old_checkpoints']
     ))
+    samples_path = os.path.join(results_path, 'samples')
     trainer.register_plugin(GeneratorPlugin(
-        os.path.join(results_path, 'samples'), params['n_samples'],
+        samples_path, params['n_samples'],
         params['sample_length'], params['sample_rate']
     ))
     trainer.register_plugin(
@@ -253,7 +257,7 @@ def main(exp, frame_sizes, dataset, **params):
         }
     ))
 
-    init_comet(params, trainer)
+    init_comet(params, trainer, samples_path, params['n_samples'], params['sample_rate'])
 
     trainer.run(params['epoch_limit'])
 

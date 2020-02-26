@@ -73,7 +73,11 @@ class ValidationPlugin(Plugin):
 
             n_examples += batch_size
 
-        return loss_sum / n_examples
+            return loss_sum / n_examples
+
+        # patch division by zero for micro datasets
+        return loss_sum
+
 
 
 class AbsoluteTimeMonitor(Monitor):
@@ -269,7 +273,9 @@ class StatsPlugin(Plugin):
 
 class CometPlugin(Plugin):
 
-    def __init__(self, experiment, fields):
+    pattern = 'ep{}-s{}.wav'
+
+    def __init__(self, experiment, fields, samples_path, n_samples, sample_rate):
         super().__init__([(1, 'epoch')])
 
         self.experiment = experiment
@@ -277,6 +283,9 @@ class CometPlugin(Plugin):
             field if type(field) is tuple else (field, 'last')
             for field in fields
         ]
+        self.n_samples = n_samples
+        self.samples_path = samples_path
+        self.sample_rate = sample_rate
 
     def register(self, trainer):
         self.trainer = trainer
@@ -285,3 +294,10 @@ class CometPlugin(Plugin):
         for (field, stat) in self.fields:
             self.experiment.log_metric(field, self.trainer.stats[field][stat])
         self.experiment.log_epoch_end(epoch_index)
+        for i in range(self.n_samples):
+            self.experiment.log_audio(
+                os.path.join(
+                    self.samples_path, self.pattern.format(epoch_index, i + 1)
+                ),
+                sample_rate=self.sample_rate
+            )
