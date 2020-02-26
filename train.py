@@ -46,9 +46,9 @@ default_params = {
     'results_path': 'results',
     'epoch_limit': 1000,
     'resume': True,
-    'sample_rate': 8000, #16000,
+    'sample_rate': 16000,
     'n_samples': 1,
-    'sample_length':  16000, #80000,
+    'sample_length':  80000,
     'loss_smoothing': 0.99,
     'cuda': True,
     'comet_key': None
