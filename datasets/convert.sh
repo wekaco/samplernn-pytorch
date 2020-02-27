@@ -1,17 +1,18 @@
 #!/bin/sh
 
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <filetpath> <chunk size in seconds> <dataset path>"
+if [ "$#" -ne 4 ]; then
+    echo "Usage: $0 <filetpath> <chunk size in seconds> <dataset path> <sample rate>"
     exit
 fi
 
 url=$1
 chunk_size=$2
 dataset_path=$3
+rate=$4
 
 converted=".temp.wav"
 rm -f $converted
-ffmpeg -i $url -ac 1 -ar 16000 $converted
+ffmpeg -i $url -ac 1 -ar $4 $converted
 #rm -f $url
 
 mkdir $dataset_path
