@@ -4,6 +4,8 @@ try:
 except ImportError:
     pass
 
+import yaml
+
 from model import SampleRNN, Predictor
 from optim import gradient_clipping
 from nn import sequence_nll_loss_bits
@@ -31,7 +33,6 @@ from glob import glob
 import re
 import argparse
 
-
 default_params = {
     # model parameters
     'n_rnn': 1,
@@ -57,7 +58,6 @@ default_params = {
     'cuda': True,
     'comet_key': None
 }
-
 tag_params = [
     'exp', 'frame_sizes', 'n_rnn', 'dim', 'learn_h0', 'q_levels', 'seq_len',
     'batch_size', 'dataset', 'val_frac', 'test_frac'
@@ -181,6 +181,15 @@ def main(exp, frame_sizes, dataset, **params):
         exp=exp, frame_sizes=frame_sizes, dataset=dataset,
         **params
     )
+    
+    if params['config']:
+        config_path = os.path.abspath(params['config'])
+        with open(config_path) as file:
+            print('Loading from {}'.format(config_path))
+            params = dict(
+                params,
+                **yaml.load(file, Loader=yaml.FullLoader)
+            )
 
     storage_client = None
     bucket = None
@@ -204,7 +213,8 @@ def main(exp, frame_sizes, dataset, **params):
         weight_norm=params['weight_norm']
     )
     predictor = Predictor(model)
-    if params['cuda']:
+    if params['cuda'] is not False:
+        print(params['cuda'])
         model = model.cuda()
         predictor = predictor.cuda()
 
@@ -393,6 +403,9 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--comet_key', help='comet.ml API key'
+    )
+    parser.add_argument(
+        '--config', help='config file with parameters', default='default.yaml'
     )
 
     parser.set_defaults(**default_params)
