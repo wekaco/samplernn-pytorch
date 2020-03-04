@@ -103,11 +103,12 @@ class SaverPlugin(Plugin):
     last_pattern = 'ep{}-it{}'
     best_pattern = 'best-ep{}-it{}'
 
-    def __init__(self, checkpoints_path, keep_old_checkpoints):
+    def __init__(self, checkpoints_path, keep_old_checkpoints, upload=None):
         super().__init__([(1, 'epoch')])
         self.checkpoints_path = checkpoints_path
         self.keep_old_checkpoints = keep_old_checkpoints
         self._best_val_loss = float('+inf')
+        self._upload = upload
 
     def register(self, trainer):
         self.trainer = trainer
@@ -115,13 +116,15 @@ class SaverPlugin(Plugin):
     def epoch(self, epoch_index):
         if not self.keep_old_checkpoints:
             self._clear(self.last_pattern.format('*', '*'))
-        torch.save(
-            self.trainer.model.state_dict(),
-            os.path.join(
-                self.checkpoints_path,
-                self.last_pattern.format(epoch_index, self.trainer.iterations)
-            )
+
+        file_path = os.path.join(
+            self.checkpoints_path,
+            self.last_pattern.format(epoch_index, self.trainer.iterations)
         )
+        torch.save(self.trainer.model.state_dict(), file_path)
+
+        if self._upload is not None:
+            self._upload(file_path)
 
         cur_val_loss = self.trainer.stats['validation_loss']['last']
         if cur_val_loss < self._best_val_loss:
@@ -147,12 +150,13 @@ class GeneratorPlugin(Plugin):
 
     pattern = 'ep{}-s{}.wav'
 
-    def __init__(self, samples_path, n_samples, sample_length, sample_rate):
+    def __init__(self, samples_path, n_samples, sample_length, sample_rate, upload=None):
         super().__init__([(1, 'epoch')])
         self.samples_path = samples_path
         self.n_samples = n_samples
         self.sample_length = sample_length
         self.sample_rate = sample_rate
+        self._upload = upload
 
     def register(self, trainer):
         self.generate = Generator(trainer.model.model, trainer.cuda)
@@ -161,12 +165,17 @@ class GeneratorPlugin(Plugin):
         samples = self.generate(self.n_samples, self.sample_length) \
                       .cpu().float().numpy()
         for i in range(self.n_samples):
-            write_wav(
-                os.path.join(
-                    self.samples_path, self.pattern.format(epoch_index, i + 1)
-                ),
-                samples[i, :], sr=self.sample_rate, norm=True
+            file_path = os.path.join(
+                self.samples_path, self.pattern.format(epoch_index, i + 1)
             )
+            write_wav(
+                file_path,
+                samples[i, :],
+                sr=self.sample_rate,
+                norm=True
+            )
+            if self._upload is not None:
+                self._upload(file_path)
 
 
 class StatsPlugin(Plugin):
