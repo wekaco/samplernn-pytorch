@@ -1,6 +1,3 @@
-*.wav
-results/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -95,5 +92,3 @@ ENV/
 *~
 *.swp
 *.swo
-
-wekaco-6d7d5ca22194.json

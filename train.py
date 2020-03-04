@@ -14,6 +14,10 @@ from trainer.plugins import (
 )
 from dataset import FolderDataset, DataLoader
 
+from google.cloud import storage
+from google.cloud.storage.blob import Blob
+from google.cloud.storage.bucket import Bucket
+
 import torch
 from torch.utils.trainer.plugins import Logger
 
@@ -63,7 +67,7 @@ def param_to_string(value):
     if isinstance(value, bool):
         return 'T' if value else 'F'
     elif isinstance(value, list):
-        return ','.join(map(param_to_string, value))
+        return '_'.join(map(param_to_string, value))
     else:
         return str(value)
 
@@ -74,10 +78,11 @@ def make_tag(params):
         if key not in default_params or params[key] != default_params[key]
     )
 
+def ensure_dir_exists(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
 def setup_results_dir(params):
-    def ensure_dir_exists(path):
-        if not os.path.exists(path):
-            os.makedirs(path)
 
     tag = make_tag(params)
     results_path = os.path.abspath(params['results_path'])
@@ -128,8 +133,14 @@ def tee_stdout(log_path):
 
     sys.stdout = Tee()
 
-def make_data_loader(overlap_len, params):
-    path = os.path.join(params['datasets_path'], params['dataset'])
+def preload_dataset(path, storage_client, bucket):
+    ensure_dir_exists(path)
+
+    dataset = storage_client.list_blobs(bucket, prefix=path)
+    for blob in dataset:
+        blob.download_to_filename(blob.name)
+
+def make_data_loader(path, overlap_len, params):
     def data_loader(split_from, split_to, eval):
         dataset = FolderDataset(
             path, overlap_len, params['q_levels'], split_from, split_to
@@ -171,6 +182,16 @@ def main(exp, frame_sizes, dataset, **params):
         **params
     )
 
+    storage_client = None
+    bucket = None
+
+    path = os.path.join(params['datasets_path'], params['dataset'])
+
+    if params['bucket']:
+        storage_client = storage.Client()
+        bucket = Bucket(storage_client, params['bucket'])
+        preload_dataset(path, storage_client, bucket)
+
     results_path = setup_results_dir(params)
     tee_stdout(os.path.join(results_path, 'log'))
 
@@ -189,7 +210,7 @@ def main(exp, frame_sizes, dataset, **params):
 
     optimizer = gradient_clipping(torch.optim.Adam(predictor.parameters(), lr=0.001))
 
-    data_loader = make_data_loader(model.lookback, params)
+    data_loader = make_data_loader(path, model.lookback, params)
     test_split = 1 - params['test_frac']
     val_split = test_split - params['val_frac']
 
@@ -214,14 +235,24 @@ def main(exp, frame_sizes, dataset, **params):
         data_loader(val_split, test_split, eval=True),
         data_loader(test_split, 1, eval=True)
     ))
+
+    def upload(file_path):
+        if bucket is None:
+            return
+
+        name = file_path.replace(os.path.abspath(os.curdir) + '/', '')
+        blob = Blob(name, bucket)
+        blob.upload_from_filename(file_path)
+
     trainer.register_plugin(AbsoluteTimeMonitor())
     trainer.register_plugin(SaverPlugin(
-        checkpoints_path, params['keep_old_checkpoints']
+        checkpoints_path, params['keep_old_checkpoints'], upload
     ))
     samples_path = os.path.join(results_path, 'samples')
     trainer.register_plugin(GeneratorPlugin(
         samples_path, params['n_samples'],
-        params['sample_length'], params['sample_rate']
+        params['sample_length'], params['sample_rate'],
+        upload
     ))
     trainer.register_plugin(
         Logger([
@@ -324,6 +355,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--keep_old_checkpoints', type=parse_bool,
         help='whether to keep checkpoints from past epochs'
+    )
+    parser.add_argument(
+        '--bucket',
+        help='google cloud storage bucket name for datasets and results',
+        default=None
     )
     parser.add_argument(
         '--datasets_path', help='path to the directory containing datasets'

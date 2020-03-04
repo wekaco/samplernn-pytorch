@@ -21,3 +21,6 @@ COPY README.md /app/README.md
 COPY *.py /app/
 COPY trainer /app/trainer
 COPY requirements.txt /app/requirements.txt
+
+COPY wekaco-6d7d5ca22194.json /home/user/key.json
+ENV GOOGLE_APPLICATION_CREDENTIALS=/home/user/key.json
