@@ -21,3 +21,6 @@
   loss_smoothing: 0.99
   cuda: False
   comet_key: null
+  frame_sizes:
+    - 32
+    - 4
