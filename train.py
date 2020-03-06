@@ -4,6 +4,8 @@ try:
 except ImportError:
     pass
 
+import yaml
+
 from model import SampleRNN, Predictor
 from optim import gradient_clipping
 from nn import sequence_nll_loss_bits
@@ -31,7 +33,6 @@ from glob import glob
 import re
 import argparse
 
-
 default_params = {
     # model parameters
     'n_rnn': 1,
@@ -57,7 +58,6 @@ default_params = {
     'cuda': True,
     'comet_key': None
 }
-
 tag_params = [
     'exp', 'frame_sizes', 'n_rnn', 'dim', 'learn_h0', 'q_levels', 'seq_len',
     'batch_size', 'dataset', 'val_frac', 'test_frac'
@@ -175,10 +175,17 @@ def init_comet(params, trainer, samples_path, n_samples, sample_rate):
             sample_rate
         ))
 
-def main(exp, frame_sizes, dataset, **params):
+def main(exp, dataset, **params):
+
+    preset_file_path = os.path.abspath(params['preset_file'])
+    with open(preset_file_path) as file:
+        global default_params
+        print('Loading from {}'.format(preset_file_path))
+        default_params = dict(default_params, **yaml.load(file, Loader=yaml.FullLoader))
+
     params = dict(
         default_params,
-        exp=exp, frame_sizes=frame_sizes, dataset=dataset,
+        exp=exp, dataset=dataset,
         **params
     )
 
@@ -204,7 +211,8 @@ def main(exp, frame_sizes, dataset, **params):
         weight_norm=params['weight_norm']
     )
     predictor = Predictor(model)
-    if params['cuda']:
+    if params['cuda'] is not False:
+        print(params['cuda'])
         model = model.cuda()
         predictor = predictor.cuda()
 
@@ -310,7 +318,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--exp', required=True, help='experiment name')
     parser.add_argument(
-        '--frame_sizes', nargs='+', type=int, required=True,
+        '--frame_sizes', nargs='+', type=int,
         help='frame sizes in terms of the number of lower tier frames, \
               starting from the lowest RNN tier'
     )
@@ -394,7 +402,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--comet_key', help='comet.ml API key'
     )
+    parser.add_argument(
+        '--preset_file', help='preset file with parameters *should be valid yaml*', default='default.yaml'
+    )
 
-    parser.set_defaults(**default_params)
+    #parser.set_defaults(**default_params)
 
     main(**vars(parser.parse_args()))
