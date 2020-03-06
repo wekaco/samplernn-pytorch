@@ -175,21 +175,19 @@ def init_comet(params, trainer, samples_path, n_samples, sample_rate):
             sample_rate
         ))
 
-def main(exp, frame_sizes, dataset, **params):
+def main(exp, dataset, **params):
+
+    preset_file_path = os.path.abspath(params['preset_file'])
+    with open(preset_file_path) as file:
+        global default_params
+        print('Loading from {}'.format(preset_file_path))
+        default_params = dict(default_params, **yaml.load(file, Loader=yaml.FullLoader))
+
     params = dict(
         default_params,
-        exp=exp, frame_sizes=frame_sizes, dataset=dataset,
+        exp=exp, dataset=dataset,
         **params
     )
-    
-    if params['config']:
-        config_path = os.path.abspath(params['config'])
-        with open(config_path) as file:
-            print('Loading from {}'.format(config_path))
-            params = dict(
-                params,
-                **yaml.load(file, Loader=yaml.FullLoader)
-            )
 
     storage_client = None
     bucket = None
@@ -322,7 +320,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--exp', required=True, help='experiment name')
     parser.add_argument(
-        '--frame_sizes', nargs='+', type=int, required=True,
+        '--frame_sizes', nargs='+', type=int,
         help='frame sizes in terms of the number of lower tier frames, \
               starting from the lowest RNN tier'
     )
@@ -407,9 +405,9 @@ if __name__ == '__main__':
         '--comet_key', help='comet.ml API key'
     )
     parser.add_argument(
-        '--config', help='config file with parameters', default='default.yaml'
+        '--preset_file', help='preset file with parameters *should be valid yaml*', default='default.yaml'
     )
 
-    parser.set_defaults(**default_params)
+    #parser.set_defaults(**default_params)
 
     main(**vars(parser.parse_args()))
