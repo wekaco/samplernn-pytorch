@@ -188,7 +188,7 @@ def main(exp, dataset, **params):
         exp=exp, dataset=dataset,
         **params
     )
-
+    print(params)
     storage_client = None
     bucket = None
 
