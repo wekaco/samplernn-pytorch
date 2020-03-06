@@ -19,7 +19,7 @@
   n_samples: 10
   sample_length:  128000
   loss_smoothing: 0.99
-  cuda: False
+  cuda: True
   comet_key: null
   frame_sizes:
     - 16
