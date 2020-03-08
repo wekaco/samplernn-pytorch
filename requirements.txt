@@ -4,3 +4,4 @@ natsort==5.1.0
 torch==0.4.1
 comet_ml
 google-cloud-storage
+pyyaml

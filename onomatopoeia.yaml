@@ -1,0 +1,26 @@
+---
+  n_rnn: 5 #
+  dim: 1024 #
+  learn_h0: True #
+  q_levels: 256 #
+  seq_len: 512 #~1024
+  weight_norm: True #
+  batch_size: 64 #
+  val_frac: 0.4 #
+  test_frac: 0.4 #
+
+  # training parameters
+  keep_old_checkpoints: False
+  datasets_path: datasets
+  results_path: results
+  epoch_limit: 1000
+  resume: True
+  sample_rate: 16000
+  n_samples: 10
+  sample_length:  128000
+  loss_smoothing: 0.99
+  cuda: True
+  comet_key: null
+  frame_sizes:
+    - 16
+    - 4
