@@ -17,7 +17,8 @@
   resume: True
   sample_rate: 16000
   n_samples: 1
-  sample_length:  80000
+  sample_length:  128000
+  sampling_temperature: 0.9 
   loss_smoothing: 0.99
   cuda: False
   comet_key: null
