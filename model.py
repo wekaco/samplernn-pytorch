@@ -309,8 +309,8 @@ class Generator(Runner):
                                       .unsqueeze(1)
             sample_dist = self.model.sample_level_mlp(prev_samples, upper_tier_conditioning)
             sample_dist = sample_dist.div(sampling_temperature).squeeze(1).exp_().data
-            print("Sample dist {}".format(np.shape(sample_dist)))
-            print("Before: {}".format(sequences[:, i]))
+            # print("Sample dist {}".format(np.shape(sample_dist))) # this came with temperature
+            # print("Before: {}".format(sequences[:, i]))
             sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
 
         #torch.backends.cudnn.enabled = True
