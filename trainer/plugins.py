@@ -150,13 +150,12 @@ class GeneratorPlugin(Plugin):
 
     pattern = 'e{}-i{}-t{}_{}.wav'
 
-    def __init__(self, samples_path, n_samples, sample_length, sample_rate, sampling_temperature, upload=None):
+    def __init__(self, samples_path, n_samples, sample_length, sample_rate, upload=None):
         super().__init__([(1, 'epoch')])
         self.samples_path = samples_path
         self.n_samples = n_samples
         self.sample_length = sample_length
         self.sample_rate = sample_rate
-        self.sampling_temperature = sampling_temperature
         self._upload = upload
 
     def register(self, trainer):
@@ -165,7 +164,7 @@ class GeneratorPlugin(Plugin):
         print(self.trainer.stats)
 
     def epoch(self, epoch_index):
-        samples = self.generate(self.n_samples, self.sample_length, self.sampling_temperature) \
+        samples = self.generate(self.n_samples, self.sample_length) \
                       .cpu().float().numpy()
         print("__epoch__");
         print(self.trainer.stats)
