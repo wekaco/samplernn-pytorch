@@ -164,8 +164,8 @@ class GeneratorPlugin(Plugin):
         self.trainer = trainer
         print(self.trainer.stats)
 
-    def epoch(self, epoch_index, initial_seq=None):
-        samples = self.generate(self.n_samples, self.sample_length, self.sampling_temperature, initial_seq=initial_seq) \
+    def epoch(self, epoch_index):
+        samples = self.generate(self.n_samples, self.sample_length, self.sampling_temperature) \
                       .cpu().float().numpy()
         print("__epoch__");
         print(self.trainer.stats)
