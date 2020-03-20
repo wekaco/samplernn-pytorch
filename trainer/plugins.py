@@ -18,7 +18,7 @@ import pickle
 import time
 
 def sample_file_path(epoch_index, iteration_index, loss, sample_index):
-    'e{}-i{}-t{}_{}.wav'.format(epoch_index, iteration_index, loss, sample_index)
+    return 'e{}-i{}-t{}_{}.wav'.format(epoch_index, iteration_index, loss, sample_index)
 
 class TrainingLossMonitor(LossMonitor):
 
