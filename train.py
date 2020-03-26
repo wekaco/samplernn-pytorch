@@ -19,6 +19,7 @@ from dataset import FolderDataset, DataLoader
 from google.cloud import storage
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
+from itertools import tee
 
 import torch
 from torch.utils.trainer.plugins import Logger
@@ -100,10 +101,22 @@ def setup_results_dir(params):
 
     return results_path
 
-def load_last_checkpoint(checkpoints_path):
+def load_last_checkpoint(checkpoints_path, storage_client=None, bucket=None):
     checkpoints_pattern = os.path.join(
         checkpoints_path, SaverPlugin.last_pattern.format('*', '*')
     )
+
+    if storage_client is not None:
+        remote_checkpoints_path = checkpoints_path.replace('{}/'.format(os.path.realpath('.')), '', 1)
+
+        blobs, names = tee(storage_client.list_blobs(bucket, prefix=remote_checkpoints_path))
+        remote_checkpoints = natsorted(map(lambda b: b.name, names))
+
+        if len(remote_checkpoints) > 0:
+            blob = next(b for b in blobs if b.name == remote_checkpoints[-1])
+            print('downloading {}'.format(blob.name))
+            blob.download_to_filename(blob.name)
+
     checkpoint_paths = natsorted(glob(checkpoints_pattern))
     if len(checkpoint_paths) > 0:
         checkpoint_path = checkpoint_paths[-1]
@@ -231,7 +244,7 @@ def main(exp, dataset, **params):
     )
 
     checkpoints_path = os.path.join(results_path, 'checkpoints')
-    checkpoint_data = load_last_checkpoint(checkpoints_path)
+    checkpoint_data = load_last_checkpoint(checkpoints_path, storage_client, bucket)
     if checkpoint_data is not None:
         (state_dict, epoch, iteration) = checkpoint_data
         trainer.epochs = epoch
