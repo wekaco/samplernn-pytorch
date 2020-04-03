@@ -17,6 +17,8 @@ import os
 import pickle
 import time
 
+def sample_file_path(epoch_index, iteration_index, loss, sample_index):
+    return 'e{}-i{}-t{}_{}.wav'.format(epoch_index, iteration_index, loss, sample_index)
 
 class TrainingLossMonitor(LossMonitor):
 
@@ -148,8 +150,6 @@ class SaverPlugin(Plugin):
 
 class GeneratorPlugin(Plugin):
 
-    pattern = 'ep{}-s{}.wav'
-
     def __init__(self, samples_path, n_samples, sample_length, sample_rate, upload=None):
         super().__init__([(1, 'epoch')])
         self.samples_path = samples_path
@@ -160,13 +160,17 @@ class GeneratorPlugin(Plugin):
 
     def register(self, trainer):
         self.generate = Generator(trainer.model.model, trainer.cuda)
+        self.trainer = trainer
+        print(self.trainer.stats)
 
     def epoch(self, epoch_index):
         samples = self.generate(self.n_samples, self.sample_length) \
                       .cpu().float().numpy()
+        print("__epoch__");
+        print(self.trainer.stats)
         for i in range(self.n_samples):
             file_path = os.path.join(
-                self.samples_path, self.pattern.format(epoch_index, i + 1)
+                self.samples_path, sample_file_path(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"]["last"].tolist(), i)
             )
             write_wav(
                 file_path,
@@ -306,7 +310,7 @@ class CometPlugin(Plugin):
         for i in range(self.n_samples):
             self.experiment.log_audio(
                 os.path.join(
-                    self.samples_path, self.pattern.format(epoch_index, i + 1)
+                    self.samples_path, sample_file_path(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"]["last"].tolist(), i)
                 ),
                 sample_rate=self.sample_rate
             )

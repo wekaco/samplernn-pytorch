@@ -20,6 +20,8 @@ from google.cloud import storage
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 
+from itertools import tee
+
 import torch
 from torch.utils.trainer.plugins import Logger
 
@@ -37,7 +39,7 @@ default_params = {
     # model parameters
     'n_rnn': 1,
     'dim': 1024,
-    'learn_h0': True,
+    'learn_h0': False,
     'q_levels': 256,
     'seq_len': 1024,
     'weight_norm': True,
@@ -49,6 +51,7 @@ default_params = {
     'keep_old_checkpoints': False,
     'datasets_path': 'datasets',
     'results_path': 'results',
+    'learning_rate': 0.001,
     'epoch_limit': 1000,
     'resume': True,
     'sample_rate': 16000,
@@ -99,10 +102,22 @@ def setup_results_dir(params):
 
     return results_path
 
-def load_last_checkpoint(checkpoints_path):
+def load_last_checkpoint(checkpoints_path, storage_client=None, bucket=None):
     checkpoints_pattern = os.path.join(
         checkpoints_path, SaverPlugin.last_pattern.format('*', '*')
     )
+
+    if storage_client is not None:
+        remote_checkpoints_path = checkpoints_path.replace('{}/'.format(os.path.realpath('.')), '', 1)
+
+        blobs, names = tee(storage_client.list_blobs(bucket, prefix=remote_checkpoints_path))
+        remote_checkpoints = natsorted(map(lambda b: b.name, names))
+
+        if len(remote_checkpoints) > 0:
+            blob = next(b for b in blobs if b.name == remote_checkpoints[-1])
+            print('downloading {}'.format(blob.name))
+            blob.download_to_filename(blob.name)
+
     checkpoint_paths = natsorted(glob(checkpoints_pattern))
     if len(checkpoint_paths) > 0:
         checkpoint_path = checkpoint_paths[-1]
@@ -216,7 +231,8 @@ def main(exp, dataset, **params):
         model = model.cuda()
         predictor = predictor.cuda()
 
-    optimizer = gradient_clipping(torch.optim.Adam(predictor.parameters()))
+    optimizer = gradient_clipping(torch.optim.Adam(predictor.parameters(),
+                                                   lr=params['learning_rate']))
 
     data_loader = make_data_loader(path, model.lookback, params)
     test_split = 1 - params['test_frac']
@@ -229,7 +245,7 @@ def main(exp, dataset, **params):
     )
 
     checkpoints_path = os.path.join(results_path, 'checkpoints')
-    checkpoint_data = load_last_checkpoint(checkpoints_path)
+    checkpoint_data = load_last_checkpoint(checkpoints_path, storage_client, bucket)
     if checkpoint_data is not None:
         (state_dict, epoch, iteration) = checkpoint_data
         trainer.epochs = epoch
@@ -274,10 +290,12 @@ def main(exp, dataset, **params):
         results_path,
         iteration_fields=[
             'training_loss',
-            ('training_loss', 'running_avg'),
+            #('training_loss', 'running_avg'),
             'time'
         ],
         epoch_fields=[
+            'training_loss',
+            ('training_loss', 'running_avg'),
             'validation_loss',
             'test_loss',
             'time'
@@ -287,9 +305,9 @@ def main(exp, dataset, **params):
                 'x': 'iteration',
                 'ys': [
                     'training_loss',
-                    ('training_loss', 'running_avg'),
+                   # ('training_loss', 'running_avg'),
                     'validation_loss',
-                    'test_loss',
+                    'test_loss'
                 ],
                 'log_y': True
             }
@@ -373,6 +391,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--results_path', help='path to the directory to save the results to'
     )
+    parser.add_argument('--learning_rate', type=float,
+                        help='learning rate for training')
     parser.add_argument('--epoch_limit', help='how many epochs to run')
     parser.add_argument(
         '--resume', type=parse_bool, default=True,

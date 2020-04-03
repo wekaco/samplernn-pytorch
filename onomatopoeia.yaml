@@ -18,6 +18,7 @@
   sample_rate: 16000
   n_samples: 10
   sample_length:  128000
+  sampling_temperature: 0.9 
   loss_smoothing: 0.99
   cuda: True
   comet_key: null
