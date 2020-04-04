@@ -270,47 +270,46 @@ class Generator(Runner):
         print('Generating sample...')
 
         for i in tqdm.tqdm(range(self.model.lookback, self.model.lookback + seq_len), mininterval=1, ascii=True):
-            for (tier_index, rnn) in \
-                    reversed(list(enumerate(self.model.frame_level_rnns))):
-                if i % rnn.n_frame_samples != 0:
-                    continue
+            with torch.no_grad():
+                for (tier_index, rnn) in \
+                        reversed(list(enumerate(self.model.frame_level_rnns))):
+                    if i % rnn.n_frame_samples != 0:
+                        continue
+
+                    prev_samples = torch.autograd.Variable(
+                        2 * utils.linear_dequantize(
+                            sequences[:, i - rnn.n_frame_samples : i],
+                            self.model.q_levels
+                        ).unsqueeze(1)
+                    )
+                    if self.cuda:
+                        prev_samples = prev_samples.cuda()
+
+                    if tier_index == len(self.model.frame_level_rnns) - 1:
+                        upper_tier_conditioning = None
+                    else:
+                        frame_index = (i // rnn.n_frame_samples) % \
+                            self.model.frame_level_rnns[tier_index + 1].frame_size
+                        upper_tier_conditioning = \
+                            frame_level_outputs[tier_index + 1][:, frame_index, :] \
+                                               .unsqueeze(1)
+
+                    frame_level_outputs[tier_index] = self.run_rnn(
+                        rnn, prev_samples, upper_tier_conditioning
+                    )
 
                 prev_samples = torch.autograd.Variable(
-                    2 * utils.linear_dequantize(
-                        sequences[:, i - rnn.n_frame_samples : i],
-                        self.model.q_levels
-                    ).unsqueeze(1),
-                    volatile=True
+                    sequences[:, i - bottom_frame_size : i]
                 )
                 if self.cuda:
                     prev_samples = prev_samples.cuda()
-
-                if tier_index == len(self.model.frame_level_rnns) - 1:
-                    upper_tier_conditioning = None
-                else:
-                    frame_index = (i // rnn.n_frame_samples) % \
-                        self.model.frame_level_rnns[tier_index + 1].frame_size
-                    upper_tier_conditioning = \
-                        frame_level_outputs[tier_index + 1][:, frame_index, :] \
-                                           .unsqueeze(1)
-
-                frame_level_outputs[tier_index] = self.run_rnn(
-                    rnn, prev_samples, upper_tier_conditioning
-                )
-
-            prev_samples = torch.autograd.Variable(
-                sequences[:, i - bottom_frame_size : i],
-                volatile=True
-            )
-            if self.cuda:
-                prev_samples = prev_samples.cuda()
-            upper_tier_conditioning = \
-                frame_level_outputs[0][:, i % bottom_frame_size, :] \
-                                      .unsqueeze(1)
-            sample_dist = self.model.sample_level_mlp(
-                prev_samples, upper_tier_conditioning
-            ).squeeze(1).exp_().data
-            sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
+                upper_tier_conditioning = \
+                    frame_level_outputs[0][:, i % bottom_frame_size, :] \
+                                          .unsqueeze(1)
+                sample_dist = self.model.sample_level_mlp(
+                    prev_samples, upper_tier_conditioning
+                ).squeeze(1).exp_().data
+                sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
 
         #torch.backends.cudnn.enabled = True
 
