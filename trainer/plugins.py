@@ -161,16 +161,16 @@ class GeneratorPlugin(Plugin):
     def register(self, trainer):
         self.generate = Generator(trainer.model.model, trainer.cuda)
         self.trainer = trainer
-        print(self.trainer.stats)
+        # print(self.trainer.stats)
 
     def epoch(self, epoch_index):
         samples = self.generate(self.n_samples, self.sample_length) \
                       .cpu().float().numpy()
         print("__epoch__");
-        print(self.trainer.stats)
+        # print(self.trainer.stats)
         for i in range(self.n_samples):
             file_path = os.path.join(
-                self.samples_path, sample_file_path(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"]["last"].tolist(), i)
+                self.samples_path, 'audio{}-{}.wav'.format(epoch_index, i) #sample_file_path(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"]["last"].tolist(), i)
             )
             write_wav(
                 file_path,
