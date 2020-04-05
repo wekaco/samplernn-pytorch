@@ -10,8 +10,6 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
    pip install --no-cache-dir -r requirements.txt
 
-ENTRYPOINT [ "python", "train.py" ]
-
 WORKDIR /app
 
 RUN mkdir -p datasets && mkdir -p results
