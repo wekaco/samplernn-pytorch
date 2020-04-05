@@ -19,5 +19,6 @@ COPY README.md /app/README.md
 
 COPY *.py /app/
 COPY trainer /app/trainer
+COPY gen /app/gen
 
 COPY *.yaml /app/
