@@ -1,6 +1,8 @@
+import time
+import logging
+
 import nn
 import utils
-import tqdm
 
 import torch
 from torch.nn import functional as F
@@ -267,9 +269,18 @@ class Generator(Runner):
                          .fill_(utils.q_zero(self.model.q_levels))
         frame_level_outputs = [None for _ in self.model.frame_level_rnns]
 
-        print('Generating sample...')
+        logging.info('Generating sample, total: {} lookback: {}'.format(seq_len, self.model.lookback))
 
-        for i in tqdm.tqdm(range(self.model.lookback, self.model.lookback + seq_len), mininterval=1, ascii=True):
+        start_time = time.time()
+        for i in range(self.model.lookback, self.model.lookback + seq_len):
+            if i % (seq_len / 100) == 0:
+                log_time = time.time()
+                logging.info('{}% {}/{} {}it/s'.format(
+                    int((i/seq_len) * 100),
+                    i, seq_len, round(self.model.lookback/(log_time-start_time), 2)
+                ))
+                start_time = log_time
+
             with torch.no_grad():
                 for (tier_index, rnn) in \
                         reversed(list(enumerate(self.model.frame_level_rnns))):
