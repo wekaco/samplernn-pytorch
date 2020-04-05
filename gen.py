@@ -26,25 +26,48 @@ import google.cloud.logging # Don't conflict with standard logging
 
 from uuid import uuid4
 
-def setup_logging(name):
+# TODO: duplicate
+def ensure_dir_exists(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+def setup_logging(name, log_level=20):
+    task_id = str(uuid4())
     res = Resource(
         type="generic_task",
         labels={
             "location": "vast.ai",
-            "task_id": str(uuid4()),
+            "task_id": task_id,
             "namespace": "samplernn-pytorch",
             "job": "gen.py",
         },
     )
+
     # Instantiates a client
     client = google.cloud.logging.Client()
     handler = CloudLoggingHandler(client, name, resource=res)
     
-    google.cloud.logging.handlers.setup_logging(handler)
+    google.cloud.logging.handlers.setup_logging(handler, log_level=log_level)
+    return task_id
 
-GCS_BUCKET='samplern'
+def preload_checkpoint(path, storage_client, bucket):
+    if os.path.isfile(path):
+        logging.debug('found local copy of {}'.format(path))
+        return
+
+    dir_name = os.path.abspath(os.path.join(path, os.pardir))
+    ensure_dir_exists(dir_name)
+
+    logging.info('searching {}'.format(path))
+    dataset = storage_client.list_blobs(bucket, prefix=path)
+    for blob in dataset:
+        logging.info('downloading {}'.format(blob.name))
+
+        blob.download_to_filename(blob.name)
 
 def main(checkpoint, **args):
+    task_id = setup_logging('gen', logging.NOTSET if args.get('debug', False) else logging.INFO)
+
     params = {
         'n_rnn': 3,
         'dim': 1024,
@@ -53,32 +76,29 @@ def main(checkpoint, **args):
         'weight_norm': True,
         'frame_sizes': [ 16, 16, 4 ],
         'sample_rate': 16000,
-        'n_samples': 1,
-        'sample_length':  16000,
-        'cuda': True,
+        'n_samples': 10,
+        'sample_length':  16000
     }
     logging.info('booting')
-
 
     # dataset = storage_client.list_blobs(bucket, prefix=path)
     # for blob in dataset:
     #   blob.download_to_filename(blob.name)
     bucket = None
 
+    if args['bucket']:
+        logging.debug('setup google storage bucket {}'.format(args['bucket']))
+        storage_client = storage.Client()
+        bucket = Bucket(storage_client, args['bucket'])
+
+        preload_checkpoint(checkpoint, storage_client, bucket)
+
+    results_path = os.path.abspath(os.path.join(checkpoint, os.pardir, os.pardir, task_id))
+    ensure_dir_exists(results_path)
+
     checkpoint = os.path.abspath(checkpoint)
 
-    if params['bucket']:
-        storage_client = storage.Client()
-        bucket = Bucket(storage_client, GCS_BUCKET)
-    
-    # Paths
-    RESULTS_PATH = '/tmp' #;results/exp:TEST-frame_sizes:16,4-n_rnn:2-dataset:COGNIMUSE_eq_eq_pad/'
-    PRETRAINED_PATH = os.path.abspath('results/NTS16k_3tier')
-    samples_path = os.path.join(RESULTS_PATH, 'generated')
-    if not os.path.exists(samples_path):
-        os.mkdir(samples_path)
-
-    tmp_pretrained_state = torch.load(PRETRAINED_PATH, map_location=lambda storage, loc: storage)
+    tmp_pretrained_state = torch.load(checkpoint, map_location=lambda storage, loc: storage.cuda(0) if args['cuda'] else storage)
     # Load all tensors onto GPU 1
     # torch.load('tensors.pt', map_location=lambda storage, loc: storage.cuda(1))
 
@@ -106,13 +126,15 @@ def main(checkpoint, **args):
         if bucket is None:
             return
 
+        # remove prefix /app
         name = file_path.replace(os.path.abspath(os.curdir) + '/', '')
         blob = Blob(name, bucket)
+        logging.info('uploading {}'.format(name))
         blob.upload_from_filename(file_path)
 
-    gen = Gen(Runner(model))
+    gen = Gen(Runner(model.cuda() if args['cuda'] else model))
     gen.register_plugin(GeneratorPlugin(
-        samples_path, params['n_samples'],
+        results_path, params['n_samples'],
         params['sample_length'], params['sample_rate'],
         upload
     ))
@@ -133,8 +155,6 @@ if __name__ == '__main__':
         else:
             raise ValueError()
 
-    setup_logging('gen')
-
     parser.add_argument(
         '--bucket',
         help='google cloud storage bucket name for datasets and results',
@@ -147,7 +167,12 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--cuda', type=parse_bool,
+        default='true',
         help='whether to use CUDA'
+    )
+    parser.add_argument(
+        '--debug', action='store_true',
+        help='debug mode'
     )
     #parser.set_defaults(**default_params)
 
