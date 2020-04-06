@@ -36,7 +36,7 @@ def setup_logging(name, log_level=20):
     res = Resource(
         type="generic_task",
         labels={
-            "location": "vast.ai",
+            "location": "vast.ai/{}".format(os.environ.get('VAST_CONTAINERLABEL', '')),
             "task_id": task_id,
             "namespace": "samplernn-pytorch",
             "job": "gen.py",
