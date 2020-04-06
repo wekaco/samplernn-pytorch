@@ -75,12 +75,11 @@ def main(checkpoint, **args):
         'q_levels': 256,
         'weight_norm': True,
         'frame_sizes': [ 16, 16, 4 ],
-        'sample_rate': 16000 * 60 * 3,
+        'sample_rate': 16000, 
         'n_samples': 10,
-        'sample_length':  16000
+        'sample_length':  16000 * 60 * 4
     }
     logging.info('booting')
-    foo = 1 / 0
 
     # dataset = storage_client.list_blobs(bucket, prefix=path)
     # for blob in dataset:
