@@ -80,6 +80,7 @@ def main(checkpoint, **args):
         'sample_length':  16000
     }
     logging.info('booting')
+    foo = 1 / 0
 
     # dataset = storage_client.list_blobs(bucket, prefix=path)
     # for blob in dataset:
@@ -132,7 +133,7 @@ def main(checkpoint, **args):
         logging.info('uploading {}'.format(name))
         blob.upload_from_filename(file_path)
 
-    gen = Gen(Runner(model.cuda() if args['cuda'] else model))
+    gen = Gen(Runner(model))
     gen.register_plugin(GeneratorPlugin(
         results_path, params['n_samples'],
         params['sample_length'], params['sample_rate'],
@@ -180,5 +181,6 @@ if __name__ == '__main__':
     try:
         main(**vars(parser.parse_args()))
     except BaseException as e:
-        logging.error(str(e))
+        import traceback
+        logging.error('{}\n{}'.format(str(e), traceback.format_exc()))
         raise
