@@ -75,7 +75,7 @@ def main(checkpoint, **args):
         'q_levels': 256,
         'weight_norm': True,
         'frame_sizes': [ 16, 16, 4 ],
-        'sample_rate': 16000,
+        'sample_rate': 16000 * 60 * 3,
         'n_samples': 10,
         'sample_length':  16000
     }
@@ -138,6 +138,7 @@ def main(checkpoint, **args):
         params['sample_length'], params['sample_rate'],
         upload
     ))
+
     gen.run();
 
 if __name__ == '__main__':
@@ -176,4 +177,8 @@ if __name__ == '__main__':
     )
     #parser.set_defaults(**default_params)
 
-    main(**vars(parser.parse_args()))
+    try:
+        main(**vars(parser.parse_args()))
+    except BaseException as e:
+        logging.error(str(e))
+        raise
