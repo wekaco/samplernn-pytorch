@@ -10,6 +10,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
    pip install --no-cache-dir -r requirements.txt
 
+# Update Dockerfile.live as well
 WORKDIR /app
 
 RUN mkdir -p datasets && mkdir -p results
