@@ -274,10 +274,10 @@ class Generator(Runner):
         start_time = time.time()
         for i in range(self.model.lookback, self.model.lookback + seq_len):
             # logging
-            if i % (seq_len / 100) == 0:
+            if i % self.model.lookback == 0:
                 log_time = time.time()
                 logging.info('{}% {}/{} {}it/s'.format(
-                    int((i/seq_len) * 100),
+                    round((i/seq_len) * 100, 2),
                     i, seq_len, round(self.model.lookback/(log_time-start_time), 2)
                 ))
                 start_time = log_time

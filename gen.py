@@ -68,17 +68,21 @@ def preload_checkpoint(path, storage_client, bucket):
 def main(checkpoint, **args):
     task_id = setup_logging('gen', logging.NOTSET if args.get('debug', False) else logging.INFO)
 
-    params = {
-        'n_rnn': 3,
-        'dim': 1024,
-        'learn_h0': False,
-        'q_levels': 256,
-        'weight_norm': True,
-        'frame_sizes': [ 16, 16, 4 ],
-        'sample_rate': 16000, 
-        'n_samples': 10,
-        'sample_length':  16000 * 60 * 4
-    }
+    params = dict({
+            'n_rnn': 3,
+            'dim': 1024,
+            'learn_h0': False,
+            'q_levels': 256,
+            'weight_norm': True,
+            'frame_sizes': [ 16, 16, 4 ],
+            'sample_rate': 16000,
+            'n_samples': 1,
+            'sample_length':  16000 * 60 * 4
+        },
+        exp=checkpoint,
+        **args
+    )
+    logging.info(str(params))
     logging.info('booting')
 
     # dataset = storage_client.list_blobs(bucket, prefix=path)
@@ -174,6 +178,38 @@ if __name__ == '__main__':
     parser.add_argument(
         '--debug', action='store_true',
         help='debug mode'
+    )
+    parser.add_argument(
+        '--frame_sizes', nargs='+', type=int,
+        help='frame sizes in terms of the number of lower tier frames, \
+              starting from the lowest RNN tier'
+    )
+    parser.add_argument(
+        '--learn_h0', type=parse_bool,
+        help='whether to learn the initial states of RNNs'
+    )
+    parser.add_argument(
+        '--n_rnn', type=int, help='number of RNN layers in each tier'
+    )
+    parser.add_argument(
+        '--q_levels', type=int,
+        help='number of bins in quantization of audio samples'
+    )
+    parser.add_argument(
+        '--weight_norm', type=parse_bool,
+        help='whether to use weight normalization'
+    )
+    parser.add_argument(
+        '--sample_rate', type=int,
+        help='sample rate of the training data and generated sound'
+    )
+    parser.add_argument(
+        '--n_samples', type=int,
+        help='number of samples to generate in each epoch'
+    )
+    parser.add_argument(
+        '--sample_length', type=int,
+        help='length of each generated sample (in samples)'
     )
     #parser.set_defaults(**default_params)
 
