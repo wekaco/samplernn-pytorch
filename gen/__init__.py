@@ -9,7 +9,7 @@ import heapq
 class Gen(object):
 
     def __init__(self, model, cuda=False):
-        self.model = model.cuda() if cuda else model
+        self.model = model
         self.cuda = cuda
         self.epochs = 0
         self.plugin_queues = {

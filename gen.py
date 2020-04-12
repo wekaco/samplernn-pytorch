@@ -109,6 +109,7 @@ def main(checkpoint, **args):
     checkpoint = os.path.abspath(checkpoint)
 
     tmp_pretrained_state = torch.load(checkpoint, map_location=lambda storage, loc: storage.cuda(0) if args['cuda'] else storage)
+
     # Load all tensors onto GPU 1
     # torch.load('tensors.pt', map_location=lambda storage, loc: storage.cuda(1))
 
@@ -129,6 +130,9 @@ def main(checkpoint, **args):
         q_levels=params['q_levels'],
         weight_norm=params['weight_norm']
     )
+    if params['cuda']:
+        model = model.cuda()
+
     # Load pretrained model
     model.load_state_dict(pretrained_state)
 
@@ -142,7 +146,7 @@ def main(checkpoint, **args):
         logging.info('uploading {}'.format(name))
         blob.upload_from_filename(file_path)
 
-    gen = Gen(Runner(model))
+    gen = Gen(Runner(model), params['cuda'])
     gen.register_plugin(GeneratorPlugin(
         results_path, params['n_samples'],
         params['sample_length'], params['sample_rate'],
