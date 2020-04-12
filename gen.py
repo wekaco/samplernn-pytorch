@@ -33,6 +33,9 @@ def ensure_dir_exists(path):
 
 def setup_logging(name, log_level=20):
     task_id = str(uuid4())
+
+    logging.getLogger().setLevel(log_level)
+
     if os.environ.get('GOOGLE_APPLICATION_CREDENTIALS') is None:
         return task_id
 
