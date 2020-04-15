@@ -15,8 +15,8 @@ from gen import Gen
 from trainer.plugins import GeneratorPlugin
 
 from google.cloud import storage
-from google.cloud.storage.blob import Blob
-from google.cloud.storage.bucket import Bucket
+from gcloud.aio.storage.blob import Blob
+from gcloud.aio.storage.bucket import Bucket
 
 # Imports the Google Cloud client library
 import logging
@@ -136,7 +136,7 @@ def main(checkpoint, **args):
     # Load pretrained model
     model.load_state_dict(pretrained_state)
 
-    def upload(file_path):
+    async def upload(file_path):
         if bucket is None:
             return
 
@@ -144,14 +144,14 @@ def main(checkpoint, **args):
         name = file_path.replace(os.path.abspath(os.curdir) + '/', '')
         blob = Blob(name, bucket)
         logging.info('uploading {}'.format(name))
-        blob.upload_from_filename(file_path)
-
-    gen = Gen(Runner(model), params['cuda'])
-    gen.register_plugin(GeneratorPlugin(
-        results_path, params['n_samples'],
-        params['sample_length'], params['sample_rate'],
-        upload
-    ))
+        try:
+            await blob.upload_from_filename(file_path)
+        except (ConnectionAbortedError,ConnectionResetError) as conn_err:
+            print(f'Connection Error: {conn_err}')
+            pass
+        except Exception as e:
+            print(f'Exception: {e}')
+            exit(1)
 
     gen.run();
 
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     #parser.set_defaults(**default_params)
 
     try:
-        main(**vars(parser.parse_args()))
+        asyncio.run(main(**vars(parser.parse_args())))
     except BaseException as e:
         import traceback
         logging.error('{}\n{}'.format(str(e), traceback.format_exc()))
