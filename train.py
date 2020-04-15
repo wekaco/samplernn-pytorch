@@ -17,8 +17,8 @@ from trainer.plugins import (
 from dataset import FolderDataset, DataLoader
 
 from google.cloud import storage
-from google.cloud.storage.blob import Blob
-from google.cloud.storage.bucket import Bucket
+from gcloud.aio.storage.blob import Blob
+from gcloud.aio.storage.bucket import Bucket
 
 from itertools import tee
 
@@ -260,13 +260,21 @@ def main(exp, dataset, **params):
         data_loader(test_split, 1, eval=True)
     ))
 
-    def upload(file_path):
+    async def upload(file_path):
         if bucket is None:
             return
 
         name = file_path.replace(os.path.abspath(os.curdir) + '/', '')
         blob = Blob(name, bucket)
-        blob.upload_from_filename(file_path)
+        try:
+            await blob.upload_from_filename(file_path)
+        except ConnectionAbortedError,ConnectionResetError as conn_err:
+            print(f'Connection Error: {conn_err}')
+            pass
+        except Exception as e:
+            print(f'Exception: {e}')
+            exit(1)
+        
 
     trainer.register_plugin(AbsoluteTimeMonitor())
     trainer.register_plugin(SaverPlugin(
@@ -428,4 +436,4 @@ if __name__ == '__main__':
 
     #parser.set_defaults(**default_params)
 
-    main(**vars(parser.parse_args()))
+    asyncio.run(main(**vars(parser.parse_args())))
