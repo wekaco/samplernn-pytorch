@@ -1,7 +1,7 @@
 import asyncio
 import os
 from gcloud.aio.storage.blob import Blob
-from gcloud.aio.storage.bucket import Bucket
+# from gcloud.aio.storage.bucket import Bucket
 
 async def upload(bucket, file_path):
     if bucket is None:
@@ -10,6 +10,7 @@ async def upload(bucket, file_path):
     # remove prefix /app
     name = file_path.replace(os.path.abspath(os.curdir) + '/', '')
     blob = Blob(name, bucket)
+    print(blob)
     logging.info('uploading {}'.format(name))
     try:
         await blob.upload_from_filename(file_path)
