@@ -6,3 +6,4 @@ comet_ml
 google-cloud-storage
 google-cloud-logging
 pyyaml
+pytest-asyncio

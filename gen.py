@@ -1,5 +1,6 @@
 '''Other comments: https://github.com/deepsound-project/samplernn-pytorch/issues/8'''
 import argparse
+import asyncio
 
 import torch
 
