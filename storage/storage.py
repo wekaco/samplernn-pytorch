@@ -1,24 +1,23 @@
 import asyncio
 import os
-from gcloud.aio.storage.blob import Blob
-# from gcloud.aio.storage.bucket import Bucket
+import logging
 
-async def upload(bucket, file_path):
-    if bucket is None:
-        raise ValueError("Bucket value must not be empty")
+class Storage:
 
-    # remove prefix /app
-    name = file_path.replace(os.path.abspath(os.curdir) + '/', '')
-    blob = Blob(name, bucket)
-    print(blob)
-    logging.info('uploading {}'.format(name))
-    try:
-        await blob.upload_from_filename(file_path)
-    except (ConnectionAbortedError,ConnectionResetError) as conn_err:
-        print(f'Connection Error: {conn_err}')
-        pass
-    except Exception as e:
-        print(f'Exception: {e}')
-        exit(1)
-    return bucket
+    def __init__(self, blob):
+        self.blob = blob
+
+    async def upload(self, file_path):
+        try:
+            logging.info(f'uploading {file_path}')
+            print(self.blob)
+            await self.blob.upload(file_path)
+        except (ConnectionAbortedError,ConnectionResetError) as conn_err:
+            print(f'Connection Error: {conn_err}')
+            pass
+        except Exception as e:
+            print(f'Exception: {e}')
+            exit(1)
+        return file_path
+
 
