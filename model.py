@@ -258,7 +258,7 @@ class Generator(Runner):
         super().__init__(model)
         self.cuda = cuda
 
-    def __call__(self, n_seqs, seq_len):
+    def __call__(self, n_seqs, seq_len, sampling_temperature=0.9):
         # generation doesn't work with CUDNN for some reason
         #torch.backends.cudnn.enabled = False
 
@@ -320,7 +320,7 @@ class Generator(Runner):
                                           .unsqueeze(1)
                 sample_dist = self.model.sample_level_mlp(
                     prev_samples, upper_tier_conditioning
-                ).squeeze(1).exp_().data
+                ).div(sampling_temperature).squeeze(1).exp_().data
                 sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
 
         #torch.backends.cudnn.enabled = True
