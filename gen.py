@@ -83,7 +83,8 @@ def main(checkpoint, **args):
             'frame_sizes': [ 16, 16, 4 ],
             'sample_rate': 16000,
             'n_samples': 1,
-            'sample_length':  16000 * 60 * 4
+            'sample_length':  16000 * 60 * 4,
+            'sampling_temperature': 0.9
         },
         exp=checkpoint,
         **args
@@ -149,7 +150,7 @@ def main(checkpoint, **args):
     gen = Gen(Runner(model), params['cuda'])
     gen.register_plugin(GeneratorPlugin(
         results_path, params['n_samples'],
-        params['sample_length'], params['sample_rate'],
+        params['sample_length'], params['sample_rate'], params['sampling_temperature'],
         upload
     ))
 
@@ -222,6 +223,10 @@ if __name__ == '__main__':
         help='length of each generated sample (in samples)'
     )
     #parser.set_defaults(**default_params)
+    parser.add_argument(
+        '--sampling_temperature', type=float,
+        help='"temperature" to control dynamics of sampling and prevent noise'
+    )
 
     try:
         main(**vars(parser.parse_args()))
