@@ -11,6 +11,34 @@ from natsort import natsorted
 from os import listdir
 from os.path import join
 
+class SeedDataset(Dataset):
+    def __init__(self, path, overlap_len, q_levels):
+        self.overlap_len = overlap_len
+        self.q_levels = q_levels
+        self.file_names = natsorted(
+            [join(path, file_name) for file_name in listdir(path)]
+        )
+
+    def __getitem__(self, index):
+        (seq, _) = load(self.file_names[index], sr=None, mono=True)
+        return utils.linear_quantize(
+            torch.from_numpy(seq)[:self.overlap_len], self.q_levels
+        )
+
+    def sequence(self, seq_len):
+        out = torch.LongTensor()
+        for seq in self:
+            out = torch.cat([
+                out,
+                seq,
+                torch.LongTensor(seq_len) \
+                 .fill_(utils.q_zero(self.q_levels))
+             ])
+
+        return out.reshape(len(self), self.overlap_len + seq_len)
+
+    def __len__(self):
+        return len(self.file_names)
 
 class FolderDataset(Dataset):
 

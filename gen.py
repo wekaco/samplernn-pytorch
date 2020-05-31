@@ -5,9 +5,11 @@ import torch
 
 from collections import OrderedDict
 import os
+import random
 # import json
 import numpy as np
 
+from dataset import SeedDataset
 
 from model import Runner, SampleRNN
 from gen import Gen
@@ -56,6 +58,20 @@ def setup_logging(name, log_level=20):
     google.cloud.logging.handlers.setup_logging(handler, log_level=log_level)
     return task_id
 
+# TODO: duplicate of `preload_dataset` in `train.py`
+def preload_random_seeds(path, storage_client, bucket, n_random_seeds):
+    if os.path.exists(path):
+        import shutil
+        shutil.rmtree(path)
+
+    ensure_dir_exists(path)
+
+    dataset = storage_client.list_blobs(bucket, prefix=path)
+    for blob in random.choices(list(dataset), k=n_random_seeds):
+        logging.info('seed downloading {}'.format(blob.name))
+
+        blob.download_to_filename(blob.name)
+
 def preload_checkpoint(path, storage_client, bucket):
     if os.path.isfile(path):
         logging.debug('found local copy of {}'.format(path))
@@ -84,7 +100,10 @@ def main(checkpoint, **args):
             'sample_rate': 16000,
             'n_samples': 1,
             'sample_length':  16000 * 60 * 4,
-            'sampling_temperature': 0.9
+            'sampling_temperature': 0.9,
+            # conditional
+            'dataset': None,
+            'datasets_path': 'datasets'
         },
         exp=checkpoint,
         **args
@@ -97,12 +116,17 @@ def main(checkpoint, **args):
     #   blob.download_to_filename(blob.name)
     bucket = None
 
-    if args['bucket']:
+
+    if params['bucket']:
         logging.debug('setup google storage bucket {}'.format(args['bucket']))
         storage_client = storage.Client()
         bucket = Bucket(storage_client, args['bucket'])
 
+        # DONT FORGET THISSSSSSSS
         preload_checkpoint(checkpoint, storage_client, bucket)
+        if params['dataset']:
+            path = os.path.join(params['datasets_path'], params['dataset'])
+            preload_random_seeds(path, storage_client, bucket, params['n_samples'])
 
     results_path = os.path.abspath(os.path.join(checkpoint, os.pardir, os.pardir, task_id))
     ensure_dir_exists(results_path)
@@ -147,11 +171,21 @@ def main(checkpoint, **args):
         logging.info('uploading {}'.format(name))
         blob.upload_from_filename(file_path)
 
+    initial_seq = None
+    if params['dataset']:
+        # duplicate code from previous params['dataset'] check
+        path = os.path.join(params['datasets_path'], params['dataset'])
+        overlap_len = model.lookback
+
+        dataset = SeedDataset(path, overlap_len, params['q_levels'])
+        initia_seq = dataset.sequence(params['sample_length'])
+
     gen = Gen(Runner(model), params['cuda'])
     gen.register_plugin(GeneratorPlugin(
         results_path, params['n_samples'],
         params['sample_length'], params['sample_rate'], params['sampling_temperature'],
-        upload
+        upload,
+        initial_seq
     ))
 
     gen.run();
@@ -226,6 +260,16 @@ if __name__ == '__main__':
     parser.add_argument(
         '--sampling_temperature', type=float,
         help='"temperature" to control dynamics of sampling and prevent noise'
+    )
+
+    # conditional generation
+    parser.add_argument(
+        '--dataset', default=None,
+        help='dataset name - name of a directory in the datasets path \
+              (settable by --datasets_path)'
+    )
+    parser.add_argument(
+        '--datasets_path', help='path to the directory containing datasets'
     )
 
     try:

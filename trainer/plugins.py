@@ -150,7 +150,7 @@ class SaverPlugin(Plugin):
 
 class GeneratorPlugin(Plugin):
 
-    def __init__(self, samples_path, n_samples, sample_length, sample_rate, sampling_temperature=0.9, upload=None):
+    def __init__(self, samples_path, n_samples, sample_length, sample_rate, sampling_temperature=0.9, upload=None, initial_seq=None):
         super().__init__([(1, 'epoch')])
         self.samples_path = samples_path
         self.n_samples = n_samples
@@ -159,6 +159,7 @@ class GeneratorPlugin(Plugin):
         self._upload = upload
 
         self.sampling_temperature = sampling_temperature
+        self.initial_seq = initial_seq
 
     def register(self, trainer):
         self.generate = Generator(trainer.model.model, trainer.cuda)
@@ -166,7 +167,7 @@ class GeneratorPlugin(Plugin):
         # print(self.trainer.stats)
 
     def epoch(self, epoch_index):
-        samples = self.generate(self.n_samples, self.sample_length, self.sampling_temperature) \
+        samples = self.generate(self.n_samples, self.sample_length, self.sampling_temperature, self.initial_seq) \
                       .cpu().float().numpy()
         print("__epoch__");
         # print(self.trainer.stats)
