@@ -258,15 +258,20 @@ class Generator(Runner):
         super().__init__(model)
         self.cuda = cuda
 
-    def __call__(self, n_seqs, seq_len, sampling_temperature=0.9):
+    def __call__(self, n_seqs, seq_len, sampling_temperature=0.9, initial_seq=None):
         # generation doesn't work with CUDNN for some reason
         #torch.backends.cudnn.enabled = False
 
         self.reset_hidden_states()
 
         bottom_frame_size = self.model.frame_level_rnns[0].n_frame_samples
+
         sequences = torch.LongTensor(n_seqs, self.model.lookback + seq_len) \
                          .fill_(utils.q_zero(self.model.q_levels))
+
+        if initial_seq is not None:
+            sequences = initial_seq
+
         frame_level_outputs = [None for _ in self.model.frame_level_rnns]
 
         logging.info('Generating sample, total: {} lookback: {}'.format(seq_len, self.model.lookback))
