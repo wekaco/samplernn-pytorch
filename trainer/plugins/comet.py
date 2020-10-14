@@ -5,7 +5,7 @@ from utils import sample_file_path
 
 
 class CometPlugin(Plugin):
-    pattern = 'ep{}-s{}.wav'
+    # pattern = 'ep{}-s{}.wav'
 
     def __init__(self, experiment, fields, samples_path, n_samples, sample_rate):
         super().__init__([(1, 'epoch')])
@@ -29,7 +29,7 @@ class CometPlugin(Plugin):
         for i in range(self.n_samples):
             self.experiment.log_audio(
                 os.path.join(
-                    self.samples_path, sample_file_path(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"]["last"].tolist(), i)
+                    self.samples_path, 'audio{}-{}.wav'.format(epoch_index, i) # sample_file_path(epoch_index, self.trainer.iterations, self.trainer.stats["training_loss"]["last"].tolist(), i)
                 ),
                 sample_rate=self.sample_rate
             )
