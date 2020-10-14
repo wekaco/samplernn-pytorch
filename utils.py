@@ -56,3 +56,6 @@ def mu_dequantize(samples, q_levels=256.):
     y = 2. * (x - (mu+1.)/2.) / (mu+1.)
     return torch.sign(y) * (1./mu) * ((1. + mu)**torch.abs(y) - 1.)
 
+
+def sample_file_path(epoch_index, iteration_index, loss, sample_index):
+    return 'e{}-i{}-t{}_{}.wav'.format(epoch_index, iteration_index, loss, sample_index)

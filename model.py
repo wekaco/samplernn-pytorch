@@ -1,6 +1,8 @@
+import time
+import logging
+
 import nn
 import utils
-import tqdm
 
 import torch
 from torch.nn import functional as F
@@ -58,8 +60,8 @@ class FrameLevelRNN(torch.nn.Module):
             out_channels=dim,
             kernel_size=1
         )
-        init.kaiming_uniform(self.input_expand.weight)
-        init.constant(self.input_expand.bias, 0)
+        init.kaiming_uniform_(self.input_expand.weight)
+        init.constant_(self.input_expand.bias, 0)
         if weight_norm:
             self.input_expand = torch.nn.utils.weight_norm(self.input_expand)
 
@@ -74,23 +76,23 @@ class FrameLevelRNN(torch.nn.Module):
                 getattr(self.rnn, 'weight_ih_l{}'.format(i)),
                 [nn.lecun_uniform, nn.lecun_uniform, nn.lecun_uniform, nn.lecun_uniform]
             )
-            init.constant(getattr(self.rnn, 'bias_ih_l{}'.format(i)), 0)
+            init.constant_(getattr(self.rnn, 'bias_ih_l{}'.format(i)), 0)
 
             nn.concat_init(
                 getattr(self.rnn, 'weight_hh_l{}'.format(i)),
-                [nn.lecun_uniform, nn.lecun_uniform, init.orthogonal, nn.lecun_uniform]
+                [nn.lecun_uniform, nn.lecun_uniform, init.orthogonal_, nn.lecun_uniform]
             )
-            init.constant(getattr(self.rnn, 'bias_hh_l{}'.format(i)), 0)
+            init.constant_(getattr(self.rnn, 'bias_hh_l{}'.format(i)), 0)
 
         self.upsampling = nn.LearnedUpsampling1d(
             in_channels=dim,
             out_channels=dim,
             kernel_size=frame_size
         )
-        init.uniform(
+        init.uniform_(
             self.upsampling.conv_t.weight, -np.sqrt(6 / dim), np.sqrt(6 / dim)
         )
-        init.constant(self.upsampling.bias, 0)
+        init.constant_(self.upsampling.bias, 0)
         if weight_norm:
             self.upsampling.conv_t = torch.nn.utils.weight_norm(
                 self.upsampling.conv_t
@@ -144,7 +146,7 @@ class SampleLevelMLP(torch.nn.Module):
             kernel_size=frame_size,
             bias=False
         )
-        init.kaiming_uniform(self.input.weight)
+        init.kaiming_uniform_(self.input.weight)
         if weight_norm:
             self.input = torch.nn.utils.weight_norm(self.input)
 
@@ -153,8 +155,8 @@ class SampleLevelMLP(torch.nn.Module):
             out_channels=dim,
             kernel_size=1
         )
-        init.kaiming_uniform(self.hidden.weight)
-        init.constant(self.hidden.bias, 0)
+        init.kaiming_uniform_(self.hidden.weight)
+        init.constant_(self.hidden.bias, 0)
         if weight_norm:
             self.hidden = torch.nn.utils.weight_norm(self.hidden)
 
@@ -164,7 +166,7 @@ class SampleLevelMLP(torch.nn.Module):
             kernel_size=1
         )
         nn.lecun_uniform(self.output.weight)
-        init.constant(self.output.bias, 0)
+        init.constant_(self.output.bias, 0)
         if weight_norm:
             self.output = torch.nn.utils.weight_norm(self.output)
 
@@ -256,7 +258,7 @@ class Generator(Runner):
         super().__init__(model)
         self.cuda = cuda
 
-    def __call__(self, n_seqs, seq_len):
+    def __call__(self, n_seqs, seq_len, sampling_temperature=0.9):
         # generation doesn't work with CUDNN for some reason
         #torch.backends.cudnn.enabled = False
 
@@ -267,50 +269,59 @@ class Generator(Runner):
                          .fill_(utils.q_zero(self.model.q_levels))
         frame_level_outputs = [None for _ in self.model.frame_level_rnns]
 
-        print('Generating sample...')
+        logging.info('Generating sample, total: {} lookback: {}'.format(seq_len, self.model.lookback))
 
-        for i in tqdm.tqdm(range(self.model.lookback, self.model.lookback + seq_len), mininterval=1, ascii=True):
-            for (tier_index, rnn) in \
-                    reversed(list(enumerate(self.model.frame_level_rnns))):
-                if i % rnn.n_frame_samples != 0:
-                    continue
+        start_time = time.time()
+        for i in range(self.model.lookback, self.model.lookback + seq_len):
+            # logging
+            if i % self.model.lookback == 0:
+                log_time = time.time()
+                logging.info('{}% {}/{} {}it/s'.format(
+                    round((i/seq_len) * 100, 2),
+                    i, seq_len, round(self.model.lookback/(log_time-start_time), 2)
+                ))
+                start_time = log_time
+
+            with torch.no_grad():
+                for (tier_index, rnn) in \
+                        reversed(list(enumerate(self.model.frame_level_rnns))):
+                    if i % rnn.n_frame_samples != 0:
+                        continue
+
+                    prev_samples = torch.autograd.Variable(
+                        2 * utils.linear_dequantize(
+                            sequences[:, i - rnn.n_frame_samples : i],
+                            self.model.q_levels
+                        ).unsqueeze(1)
+                    )
+                    if self.cuda:
+                        prev_samples = prev_samples.cuda()
+
+                    if tier_index == len(self.model.frame_level_rnns) - 1:
+                        upper_tier_conditioning = None
+                    else:
+                        frame_index = (i // rnn.n_frame_samples) % \
+                            self.model.frame_level_rnns[tier_index + 1].frame_size
+                        upper_tier_conditioning = \
+                            frame_level_outputs[tier_index + 1][:, frame_index, :] \
+                                               .unsqueeze(1)
+
+                    frame_level_outputs[tier_index] = self.run_rnn(
+                        rnn, prev_samples, upper_tier_conditioning
+                    )
 
                 prev_samples = torch.autograd.Variable(
-                    2 * utils.linear_dequantize(
-                        sequences[:, i - rnn.n_frame_samples : i],
-                        self.model.q_levels
-                    ).unsqueeze(1),
-                    volatile=True
+                    sequences[:, i - bottom_frame_size : i]
                 )
                 if self.cuda:
                     prev_samples = prev_samples.cuda()
-
-                if tier_index == len(self.model.frame_level_rnns) - 1:
-                    upper_tier_conditioning = None
-                else:
-                    frame_index = (i // rnn.n_frame_samples) % \
-                        self.model.frame_level_rnns[tier_index + 1].frame_size
-                    upper_tier_conditioning = \
-                        frame_level_outputs[tier_index + 1][:, frame_index, :] \
-                                           .unsqueeze(1)
-
-                frame_level_outputs[tier_index] = self.run_rnn(
-                    rnn, prev_samples, upper_tier_conditioning
-                )
-
-            prev_samples = torch.autograd.Variable(
-                sequences[:, i - bottom_frame_size : i],
-                volatile=True
-            )
-            if self.cuda:
-                prev_samples = prev_samples.cuda()
-            upper_tier_conditioning = \
-                frame_level_outputs[0][:, i % bottom_frame_size, :] \
-                                      .unsqueeze(1)
-            sample_dist = self.model.sample_level_mlp(
-                prev_samples, upper_tier_conditioning
-            ).squeeze(1).exp_().data
-            sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
+                upper_tier_conditioning = \
+                    frame_level_outputs[0][:, i % bottom_frame_size, :] \
+                                          .unsqueeze(1)
+                sample_dist = self.model.sample_level_mlp(
+                    prev_samples, upper_tier_conditioning
+                ).div(sampling_temperature).squeeze(1).exp_().data
+                sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
 
         #torch.backends.cudnn.enabled = True
 

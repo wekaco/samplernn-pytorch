@@ -57,6 +57,7 @@ default_params = {
     'sample_rate': 16000,
     'n_samples': 1,
     'sample_length':  80000,
+    'sampling_temperature': 0.9,
     'loss_smoothing': 0.99,
     'cuda': True,
     'comet_key': None
@@ -275,8 +276,9 @@ def main(exp, dataset, **params):
     samples_path = os.path.join(results_path, 'samples')
     trainer.register_plugin(GeneratorPlugin(
         samples_path, params['n_samples'],
-        params['sample_length'], params['sample_rate'],
-        upload
+        params['sample_length'], params['sample_rate'], params['q_levels'],
+        params['sampling_temperature'],
+        upload=upload
     ))
     trainer.register_plugin(
         Logger([
