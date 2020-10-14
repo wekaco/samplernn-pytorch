@@ -150,7 +150,8 @@ def main(checkpoint, **args):
     gen = Gen(Runner(model), params['cuda'])
     gen.register_plugin(GeneratorPlugin(
         results_path, params['n_samples'],
-        params['sample_length'], params['sample_rate'], params['sampling_temperature'],
+        params['sample_length'], params['sample_rate'], params['q_levels'],
+        params['sampling_temperature'],
         upload
     ))
 
