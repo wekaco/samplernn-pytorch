@@ -1,8 +1,7 @@
 # wekaco/samplernn-pytorch
 
-.
 Fork of [deepsound-project/samplernn-pytorch](https://github.com/deepsound-project/samplernn-pytorch) "A PyTorch implementation of [SampleRNN: An Unconditional End-to-End Neural Audio Generation Model](https://arxiv.org/abs/1612.07837)"
-- Using torch 0.4.1 (see issues for warnings)
+- Using pytorch==1.5.1 torchvision==0.6.1 cudatoolkit=10.2
 - Docker ready
 
 ## Training
