@@ -5,7 +5,7 @@ from torch.utils.data import (
     Dataset, DataLoader as DataLoaderBase
 )
 
-from librosa.core import load
+import soundfile as sf
 from natsort import natsorted
 
 from os import listdir
@@ -26,7 +26,7 @@ class FolderDataset(Dataset):
         ]
 
     def __getitem__(self, index):
-        (seq, _) = load(self.file_names[index], sr=None, mono=True)
+        (seq, _) = sf.read(self.file_names[index], samplerate=None)
         return torch.cat([
             torch.LongTensor(self.overlap_len) \
                  .fill_(utils.q_zero(self.q_levels)),

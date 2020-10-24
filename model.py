@@ -186,7 +186,7 @@ class SampleLevelMLP(torch.nn.Module):
         x = F.relu(self.hidden(x))
         x = self.output(x).permute(0, 2, 1).contiguous()
 
-        return F.log_softmax(x.view(-1, self.q_levels)) \
+        return F.log_softmax(x.view(-1, self.q_levels), dim=-1) \
                 .view(batch_size, -1, self.q_levels)
 
 

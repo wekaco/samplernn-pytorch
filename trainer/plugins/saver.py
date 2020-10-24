@@ -1,7 +1,6 @@
 import torch
-import glob
+from glob import glob
 import os
-import pickle
 
 from .plugin import Plugin
 

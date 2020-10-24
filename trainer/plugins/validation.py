@@ -38,19 +38,22 @@ class ValidationPlugin(Plugin):
 
             def wrap(input):
                 if torch.is_tensor(input):
-                    input = Variable(input, volatile=True)
-                    if self.trainer.cuda:
-                        input = input.cuda()
+                    with torch.no_grad():
+                        input = Variable(input)
+                        if self.trainer.cuda:
+                            input = input.cuda()
                 return input
+
             batch_inputs = list(map(wrap, batch_inputs))
 
-            batch_target = Variable(batch_target, volatile=True)
-            if self.trainer.cuda:
-                batch_target = batch_target.cuda()
+            with torch.no_grad():
+                batch_target = Variable(batch_target)
+                if self.trainer.cuda:
+                    batch_target = batch_target.cuda()
 
-            batch_output = self.trainer.model(*batch_inputs)
-            loss_sum += self.trainer.criterion(batch_output, batch_target) \
-                                    .data[0] * batch_size
+                batch_output = self.trainer.model(*batch_inputs)
+                loss_sum += self.trainer.criterion(batch_output, batch_target) \
+                                        .data.item() * batch_size
 
             n_examples += batch_size
 

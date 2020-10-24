@@ -12,7 +12,7 @@ from nn import sequence_nll_loss_bits
 from trainer import Trainer
 from trainer.plugins import (
     TrainingLossMonitor, ValidationPlugin, AbsoluteTimeMonitor, SaverPlugin,
-    GeneratorPlugin, StatsPlugin
+    GeneratorPlugin, StatsPlugin, Logger
 )
 from dataset import FolderDataset, DataLoader
 
@@ -23,7 +23,6 @@ from google.cloud.storage.bucket import Bucket
 from itertools import tee
 
 import torch
-from torch.utils.trainer.plugins import Logger
 
 from natsort import natsorted
 
