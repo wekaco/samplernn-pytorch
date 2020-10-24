@@ -1,0 +1,26 @@
+FROM anibali/pytorch:cuda-9.1
+
+RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+  ffmpeg \
+  libav-tools \
+  libavcodec-extra \
+  && sudo rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip && \
+   pip install setuptools==40.3.0 && \
+   pip install --no-cache-dir -r requirements.txt
+
+# Update Dockerfile.live as well
+WORKDIR /app
+
+RUN mkdir -p datasets && mkdir -p results
+
+COPY LICENSE /app/LICENSE
+COPY README.md /app/README.md
+
+COPY *.py /app/
+COPY trainer /app/trainer
+COPY gen /app/gen
+
+COPY *.yaml /app/
