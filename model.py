@@ -218,8 +218,9 @@ class Runner:
 
 class Predictor(Runner, torch.nn.Module):
 
-    def __init__(self, model):
+    def __init__(self, model, dequantize):
         super().__init__(model)
+        self._dequantize = dequantize
 
     def forward(self, input_sequences, reset):
         if reset:
@@ -231,7 +232,7 @@ class Predictor(Runner, torch.nn.Module):
         for rnn in reversed(self.model.frame_level_rnns):
             from_index = self.model.lookback - rnn.n_frame_samples
             to_index = -rnn.n_frame_samples + 1
-            prev_samples = 2 * utils.linear_dequantize(
+            prev_samples = 2 * self._dequantize(
                 input_sequences[:, from_index : to_index],
                 self.model.q_levels
             )
@@ -254,9 +255,10 @@ class Predictor(Runner, torch.nn.Module):
 
 class Generator(Runner):
 
-    def __init__(self, model, cuda=False):
+    def __init__(self, model, dequantize, cuda=False):
         super().__init__(model)
         self.cuda = cuda
+        self._dequantize = dequantize
 
     def __call__(self, n_seqs, seq_len, sampling_temperature=0.9):
         # generation doesn't work with CUDNN for some reason
@@ -289,7 +291,7 @@ class Generator(Runner):
                         continue
 
                     prev_samples = torch.autograd.Variable(
-                        2 * utils.linear_dequantize(
+                        2 * self._dequantize(
                             sequences[:, i - rnn.n_frame_samples : i],
                             self.model.q_levels
                         ).unsqueeze(1)

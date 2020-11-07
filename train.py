@@ -6,6 +6,7 @@ except ImportError:
 
 import yaml
 
+from utils import ( QMethod, quantizer)
 from model import SampleRNN, Predictor
 from optim import gradient_clipping
 from nn import sequence_nll_loss_bits
@@ -59,7 +60,8 @@ default_params = {
     'sampling_temperature': 0.9,
     'loss_smoothing': 0.99,
     'cuda': True,
-    'comet_key': None
+    'comet_key': None,
+    'q_method': QMethod.LINEAR,
 }
 tag_params = [
     'exp', 'frame_sizes', 'n_rnn', 'dim', 'learn_h0', 'q_levels', 'seq_len',
@@ -155,10 +157,11 @@ def preload_dataset(path, storage_client, bucket):
     for blob in dataset:
         blob.download_to_filename(blob.name)
 
-def make_data_loader(path, overlap_len, params):
+def make_data_loader(path, overlap_len, quantize, params):
     def data_loader(split_from, split_to, eval):
         dataset = FolderDataset(
-            path, overlap_len, params['q_levels'], split_from, split_to
+            path, overlap_len, params['q_levels'], quantize,
+            split_from, split_to
         )
         return DataLoader(
             dataset,
@@ -217,6 +220,7 @@ def main(exp, dataset, **params):
     results_path = setup_results_dir(params)
     tee_stdout(os.path.join(results_path, 'log'))
 
+    (quantize, dequantize) = quantizer(params['q_method'])
     model = SampleRNN(
         frame_sizes=params['frame_sizes'],
         n_rnn=params['n_rnn'],
@@ -225,7 +229,7 @@ def main(exp, dataset, **params):
         q_levels=params['q_levels'],
         weight_norm=params['weight_norm']
     )
-    predictor = Predictor(model)
+    predictor = Predictor(model, dequantize)
     if params['cuda'] is not False:
         print(params['cuda'])
         model = model.cuda()
@@ -234,7 +238,7 @@ def main(exp, dataset, **params):
     optimizer = gradient_clipping(torch.optim.Adam(predictor.parameters(),
                                                    lr=params['learning_rate']))
 
-    data_loader = make_data_loader(path, model.lookback, params)
+    data_loader = make_data_loader(path, model.lookback, quantize, params)
     test_split = 1 - params['test_frac']
     val_split = test_split - params['val_frac']
 
@@ -276,6 +280,7 @@ def main(exp, dataset, **params):
     trainer.register_plugin(GeneratorPlugin(
         samples_path, params['n_samples'],
         params['sample_length'], params['sample_rate'], params['q_levels'],
+        dequantize,
         params['sampling_temperature'],
         upload=upload
     ))
@@ -425,6 +430,9 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--preset_file', help='preset file with parameters *should be valid yaml*', default='default.yaml'
+    )
+    parser.add_argument(
+        '--q_method', type=QMethod, choices=QMethod, default=QMethod.LINEAR,
     )
 
     #parser.set_defaults(**default_params)

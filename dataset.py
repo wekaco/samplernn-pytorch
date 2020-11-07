@@ -14,7 +14,7 @@ from os.path import join
 
 class FolderDataset(Dataset):
 
-    def __init__(self, path, overlap_len, q_levels, ratio_min=0, ratio_max=1):
+    def __init__(self, path, overlap_len, q_levels, quantize, ratio_min=0, ratio_max=1):
         super().__init__()
         self.overlap_len = overlap_len
         self.q_levels = q_levels
@@ -24,13 +24,14 @@ class FolderDataset(Dataset):
         self.file_names = file_names[
             int(ratio_min * len(file_names)) : int(ratio_max * len(file_names))
         ]
+        self._quantize = quantize
 
     def __getitem__(self, index):
         (seq, _) = sf.read(self.file_names[index], samplerate=None)
         return torch.cat([
             torch.LongTensor(self.overlap_len) \
                  .fill_(utils.q_zero(self.q_levels)),
-            utils.linear_quantize(
+            self._quantize(
                 torch.from_numpy(seq), self.q_levels
             )
         ])

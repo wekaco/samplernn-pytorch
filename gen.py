@@ -9,6 +9,7 @@ import os
 import numpy as np
 
 
+from utils import ( QMethod, quantizer )
 from model import Runner, SampleRNN
 from gen import Gen
 
@@ -84,7 +85,8 @@ def main(checkpoint, **args):
             'sample_rate': 16000,
             'n_samples': 1,
             'sample_length':  16000 * 60 * 4,
-            'sampling_temperature': 0.9
+            'sampling_temperature': 1,
+            'q_method': QMethod.LINEAR,
         },
         exp=checkpoint,
         **args
@@ -147,10 +149,12 @@ def main(checkpoint, **args):
         logging.info('uploading {}'.format(name))
         blob.upload_from_filename(file_path)
 
+    (_, dequantize) = quantizer(params['q_method'])
     gen = Gen(Runner(model), params['cuda'])
     gen.register_plugin(GeneratorPlugin(
         results_path, params['n_samples'],
         params['sample_length'], params['sample_rate'], params['q_levels'],
+        dequantize,
         params['sampling_temperature'],
         upload
     ))
@@ -227,6 +231,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--sampling_temperature', type=float,
         help='"temperature" to control dynamics of sampling and prevent noise'
+    )
+    parser.add_argument(
+        '--q_method', type=QMethod, choices=QMethod, default=QMethod.LINEAR,
     )
 
     try:

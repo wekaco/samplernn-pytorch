@@ -2,14 +2,14 @@ import os
 
 from librosa.output import write_wav
 
-from utils import sample_file_path, linear_dequantize
+from utils import sample_file_path
 from model import Generator
 from .plugin import Plugin
 
 
 class GeneratorPlugin(Plugin):
 
-    def __init__(self, samples_path, n_samples, sample_length, sample_rate, q_levels, sampling_temperature=0.9, upload=None):
+    def __init__(self, samples_path, n_samples, sample_length, sample_rate, q_levels, dequantize, sampling_temperature=1, upload=None):
         super().__init__([(1, 'epoch')])
         self.samples_path = samples_path
         self.n_samples = n_samples
@@ -17,11 +17,12 @@ class GeneratorPlugin(Plugin):
         self.sample_rate = sample_rate
         self.q_levels = q_levels
         self._upload = upload
+        self._dequantize = dequantize
 
         self.sampling_temperature = sampling_temperature
 
     def register(self, trainer):
-        self.generate = Generator(trainer.model.model, trainer.cuda)
+        self.generate = Generator(trainer.model.model, self._dequantize, trainer.cuda)
         self.trainer = trainer
         # print(self.trainer.stats)
 
@@ -36,7 +37,7 @@ class GeneratorPlugin(Plugin):
             )
             write_wav(
                 file_path,
-                linear_dequantize(samples[i, :], self.q_levels).numpy(),
+                self._dequantize(samples[i, :], self.q_levels).numpy(),
                 sr=self.sample_rate,
                 norm=True
             )

@@ -1,9 +1,23 @@
+from enum import Enum
+
 import torch
 from torch import nn
 import numpy as np
 
 
 EPSILON = 1e-2
+
+class QMethod(Enum):
+    LINEAR = 'linear'
+    MU_LAW = 'mu_law'
+
+def quantizer(quantize_type: QMethod):
+    assert quantize_type in [ QMethod.LINEAR, QMethod.MU_LAW ]
+
+    if QMethod.MU_LAW:
+        return (mu_quantize, mu_dequantize)
+
+    return (linear_quantize, linear_dequantize)
 
 def linear_quantize(samples, q_levels):
     samples = samples.clone()
