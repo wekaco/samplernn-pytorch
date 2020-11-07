@@ -274,11 +274,14 @@ class Generator(Runner):
         start_time = time.time()
         for i in range(self.model.lookback, self.model.lookback + seq_len):
             # logging
+            tmp_gap = 1 - sampling_temperature
+            tmp_climax = sampling_temperature + (tmp_gap * (i / (seq_len + self.model.lookback )))
             if i % self.model.lookback == 0:
                 log_time = time.time()
-                logging.info('{}% {}/{} {}it/s'.format(
+                logging.info('{}% {}/{} {}it/s temperature: {}'.format(
                     round((i/seq_len) * 100, 2),
-                    i, seq_len, round(self.model.lookback/(log_time-start_time), 2)
+                    i, seq_len, round(self.model.lookback/(log_time-start_time), 2),
+                    tmp_climax
                 ))
                 start_time = log_time
 
@@ -320,7 +323,7 @@ class Generator(Runner):
                                           .unsqueeze(1)
                 sample_dist = self.model.sample_level_mlp(
                     prev_samples, upper_tier_conditioning
-                ).div(sampling_temperature).squeeze(1).exp_().data
+                ).div(tmp_climax).squeeze(1).exp_().data
                 sequences[:, i] = sample_dist.multinomial(1).squeeze(1)
 
         #torch.backends.cudnn.enabled = True
