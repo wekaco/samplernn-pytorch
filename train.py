@@ -65,7 +65,7 @@ default_params = {
 }
 tag_params = [
     'exp', 'frame_sizes', 'n_rnn', 'dim', 'learn_h0', 'q_levels', 'seq_len',
-    'batch_size', 'dataset', 'val_frac', 'test_frac'
+    'batch_size', 'dataset', 'val_frac', 'test_frac', 'q_method'
 ]
 
 def param_to_string(value):
@@ -270,7 +270,10 @@ def main(exp, dataset, **params):
 
         name = file_path.replace(os.path.abspath(os.curdir) + '/', '')
         blob = Blob(name, bucket)
-        blob.upload_from_filename(file_path)
+        try:
+            blob.upload_from_filename(file_path, timeout=300)
+        except Exception as e:
+            print(str(e))
 
     trainer.register_plugin(AbsoluteTimeMonitor())
     trainer.register_plugin(SaverPlugin(
