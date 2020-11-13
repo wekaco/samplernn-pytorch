@@ -32,10 +32,10 @@ mkl-service==2.3.0
 natsort==5.1.0
 netifaces==0.10.9
 numba==0.51.2
-numpy @ file:///tmp/build/80754af9/numpy_and_numpy_base_1596233737064/work
+numpy
 nvidia-ml-py3==7.352.0
 olefile==0.46
-Pillow @ file:///tmp/build/80754af9/pillow_1594307298074/work
+Pillow
 protobuf==3.13.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8

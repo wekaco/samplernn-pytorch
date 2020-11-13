@@ -1,8 +1,8 @@
-FROM nvidia/cuda:10.2-cudnn7-runtime-ubuntu16.04
+FROM nvidia/cuda:11.0-cudnn8-runtime-ubuntu16.04
 
 # Export CUDA env variables
 # ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda-10.2/lib64"
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda-10.2/lib64"
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda-11.0/lib64"
 ENV CUDA_HOME="/usr/local/cuda"
 # ENV PATH="/usr/local/cuda/bin:/usr/local/cuda-10.2/bin:$PATH"
 
@@ -50,7 +50,7 @@ ENV CONDA_DEFAULT_ENV=py36
 ENV CONDA_PREFIX=/home/user/miniconda/envs/$CONDA_DEFAULT_ENV
 ENV PATH=$CONDA_PREFIX/bin:$PATH
 
-RUN conda install pytorch==1.5.1 torchvision==0.6.1 cudatoolkit=10.2 -c pytorch \
+RUN conda install pytorch==1.7.0 cudatoolkit=11.0 -c pytorch \
   && conda clean -ya
 
 # Install requirements
@@ -69,4 +69,4 @@ COPY *.py /app/
 COPY trainer /app/trainer
 COPY gen /app/gen
 
-COPY *.yaml /app/
+COPY datasets/DEMO /app/datasets/DEMO
