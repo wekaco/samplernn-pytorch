@@ -13,7 +13,8 @@ from nn import sequence_nll_loss_bits
 from trainer import Trainer
 from trainer.plugins import (
     TrainingLossMonitor, ValidationPlugin, AbsoluteTimeMonitor, SaverPlugin,
-    GeneratorPlugin, StatsPlugin, Logger
+    GeneratorPlugin, StatsPlugin, Logger,
+    SchedulerPlugin
 )
 from dataset import FolderDataset, DataLoader
 
@@ -52,6 +53,7 @@ default_params = {
     'datasets_path': 'datasets',
     'results_path': 'results',
     'learning_rate': 0.001,
+    'lr_scheduler_step': 0,
     'epoch_limit': 1000,
     'resume': True,
     'sample_rate': 16000,
@@ -65,7 +67,7 @@ default_params = {
 }
 tag_params = [
     'exp', 'frame_sizes', 'n_rnn', 'dim', 'learn_h0', 'q_levels', 'seq_len',
-    'batch_size', 'dataset', 'val_frac', 'test_frac', 'q_method'
+    'batch_size', 'dataset', 'val_frac', 'test_frac', 'q_method', 'lr_scheduler_step',
 ]
 
 def param_to_string(value):
@@ -263,6 +265,9 @@ def main(exp, dataset, **params):
         data_loader(val_split, test_split, eval=True),
         data_loader(test_split, 1, eval=True)
     ))
+    trainer.register_plugin(SchedulerPlugin(
+        params['lr_scheduler_step']
+    ))
 
     def upload(file_path):
         if bucket is None:
@@ -276,10 +281,11 @@ def main(exp, dataset, **params):
             print(str(e))
 
     trainer.register_plugin(AbsoluteTimeMonitor())
+
+    samples_path = os.path.join(results_path, 'samples')
     trainer.register_plugin(SaverPlugin(
         checkpoints_path, params['keep_old_checkpoints'], upload
     ))
-    samples_path = os.path.join(results_path, 'samples')
     trainer.register_plugin(GeneratorPlugin(
         samples_path, params['n_samples'],
         params['sample_length'], params['sample_rate'], params['q_levels'],
@@ -402,6 +408,10 @@ if __name__ == '__main__':
     )
     parser.add_argument('--learning_rate', type=float,
                         help='learning rate for training')
+    parser.add_argument(
+        '--lr_scheduler_step', type=int, default=0,
+        help='step size of lr scheduler, will add scheduler if > 0'
+    )
     parser.add_argument('--epoch_limit', help='how many epochs to run')
     parser.add_argument(
         '--resume', type=parse_bool, default=True,
