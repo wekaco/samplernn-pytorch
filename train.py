@@ -4,8 +4,6 @@ try:
 except ImportError:
     pass
 
-import yaml
-
 from utils import ( QMethod, quantizer)
 from model import SampleRNN, Predictor
 from optim import gradient_clipping
@@ -47,6 +45,7 @@ default_params = {
     'batch_size': 128,
     'val_frac': 0.1,
     'test_frac': 0.1,
+    'frame_sizes': [ 16, 16 ],
 
     # training parameters
     'keep_old_checkpoints': False,
@@ -59,7 +58,7 @@ default_params = {
     'sample_rate': 16000,
     'n_samples': 1,
     'sample_length':  80000,
-    'sampling_temperature': 0.9,
+    'sampling_temperature': 1,
     'loss_smoothing': 0.99,
     'cuda': True,
     'comet_key': None,
@@ -196,13 +195,6 @@ def init_comet(params, trainer, samples_path, n_samples, sample_rate):
         ))
 
 def main(exp, dataset, **params):
-
-    preset_file_path = os.path.abspath(params['preset_file'])
-    with open(preset_file_path) as file:
-        global default_params
-        print('Loading from {}'.format(preset_file_path))
-        default_params = dict(default_params, **yaml.load(file, Loader=yaml.FullLoader))
-
     params = dict(
         default_params,
         exp=exp, dataset=dataset,
@@ -440,9 +432,6 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--comet_key', help='comet.ml API key'
-    )
-    parser.add_argument(
-        '--preset_file', help='preset file with parameters *should be valid yaml*', default='default.yaml'
     )
     parser.add_argument(
         '--q_method', type=QMethod, choices=QMethod, default=QMethod.LINEAR,
