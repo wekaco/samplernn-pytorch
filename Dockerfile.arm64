@@ -1,0 +1,35 @@
+FROM  nvcr.io/nvidia/l4t-pytorch:r32.4.4-pth1.6-py3
+
+# Install some basic utilities
+# Install some basic utilities
+RUN apt-get update && apt-get install -y \
+#   build-essential \
+    libffi-dev \
+    pkg-config \
+    libfreetype6-dev \
+    libpng-dev \
+#   python3-setuptools \ this was previously on
+#    curl \
+#    ca-certificates \
+#    sudo \
+#    git \
+#    bzip2 \
+#    libx11-6 \
+    sox \
+    ffmpeg \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install requirements
+COPY requirements.arm64.txt ./
+RUN pip3 install --no-cache-dir -r requirements.arm64.txt
+
+WORKDIR /app
+
+RUN mkdir -p datasets && mkdir -p results
+
+COPY LICENSE /app/LICENSE
+COPY README.md /app/README.md
+
+COPY *.py /app/
+COPY trainer /app/trainer
+COPY gen /app/gen
